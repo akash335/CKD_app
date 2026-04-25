@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/app/build/
+android/.gradle/
+ios/build/
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+*.db
+uploads/
