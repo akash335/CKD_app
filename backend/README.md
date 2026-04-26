@@ -163,7 +163,10 @@ Build Command
 Start Command
 --> uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ## Notes
+
 * SQLite is suitable for local/demo use
 * for production, PostgreSQL is recommended
 * uploaded report images are supporting inputs, not direct prediction inputs
 * ML model remains based on structured CKD dataset features.
+
+--end--
