@@ -11,26 +11,33 @@ import {
 
 import SectionCard from '../components/SectionCard';
 import StatPill from '../components/StatPill';
-import { listPatients } from '../services/patientService';
+import {
+  archiveRecentPatientOverview,
+  listPastOverviewPatients,
+  listRecentOverviewPatients,
+} from '../services/patientService';
 import { getLatestPrediction } from '../services/predictionService';
 import { getAlerts } from '../services/alertService';
-import { clearTeleconsultationHistory } from '../services/telemedicineService';
 import { colors } from '../utils/theme';
 
 export default function DoctorDashboardScreen() {
+  const [mode, setMode] = useState('recent');
   const [patients, setPatients] = useState([]);
   const [predictionsMap, setPredictionsMap] = useState({});
   const [alertsMap, setAlertsMap] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [clearing, setClearing] = useState(false);
 
-  const load = async () => {
+  const load = async (selectedMode = mode) => {
     setRefreshing(true);
 
     try {
-      const roster = await listPatients();
-      const safeRoster = Array.isArray(roster) ? roster : [];
+      const roster =
+        selectedMode === 'past'
+          ? await listPastOverviewPatients()
+          : await listRecentOverviewPatients();
 
+      const safeRoster = Array.isArray(roster) ? roster : [];
       setPatients(safeRoster);
 
       const predictionEntries = await Promise.all(
@@ -65,34 +72,33 @@ export default function DoctorDashboardScreen() {
     }
   };
 
-  const clearDoctorConsultations = async () => {
-    try {
-      const canUseBrowserConfirm =
-        typeof globalThis !== 'undefined' &&
-        typeof globalThis.confirm === 'function';
+  const switchMode = async (nextMode) => {
+    setMode(nextMode);
+    await load(nextMode);
+  };
 
-      const confirmed = canUseBrowserConfirm
-        ? globalThis.confirm('Clear all consultation history for this doctor account?')
-        : true;
+  const clearRecentOverview = async () => {
+    try {
+      const confirmed =
+        typeof globalThis !== 'undefined' && typeof globalThis.confirm === 'function'
+          ? globalThis.confirm('Move recent patient overview to Past?')
+          : true;
 
       if (!confirmed) return;
 
       setClearing(true);
 
-      const response = await clearTeleconsultationHistory();
-      console.log('CLEAR CONSULTATION RESPONSE:', response);
+      const response = await archiveRecentPatientOverview();
 
       Alert.alert(
-        'Cleared',
-        `Doctor consultation history cleared successfully. Deleted: ${response?.deleted ?? 0}`
+        'Moved to Past',
+        `Recent patient overview moved to Past. Archived: ${response?.archived ?? 0}`
       );
 
-      await load();
+      await load('recent');
     } catch (e) {
-      console.log('CLEAR CONSULTATION ERROR:', e?.response?.data || e.message);
-
       Alert.alert(
-        'Unable to clear',
+        'Unable to clear overview',
         e?.response?.data?.detail || JSON.stringify(e?.response?.data || e.message)
       );
     } finally {
@@ -101,7 +107,7 @@ export default function DoctorDashboardScreen() {
   };
 
   useEffect(() => {
-    load();
+    load('recent');
   }, []);
 
   const summary = useMemo(() => {
@@ -122,7 +128,7 @@ export default function DoctorDashboardScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ padding: 16, paddingBottom: 36 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(mode)} />}
     >
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
@@ -130,25 +136,50 @@ export default function DoctorDashboardScreen() {
           <Text style={styles.title}>CKD Guardian Doctor Desk</Text>
         </View>
 
+        {mode === 'recent' ? (
+          <TouchableOpacity
+            style={[styles.clearButton, clearing && styles.clearButtonDisabled]}
+            onPress={clearRecentOverview}
+            disabled={clearing}
+          >
+            <Text style={styles.clearButtonText}>
+              {clearing ? 'Clearing...' : 'Clear recent overview'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      <Text style={styles.subtitle}>
+        View recent patient overview, or open Past to review cleared patient overview data.
+      </Text>
+
+      <View style={styles.segmentWrap}>
         <TouchableOpacity
-          style={[styles.clearButton, clearing && styles.clearButtonDisabled]}
-          onPress={clearDoctorConsultations}
-          disabled={clearing}
+          style={[styles.segmentButton, mode === 'recent' && styles.segmentButtonActive]}
+          onPress={() => switchMode('recent')}
         >
-          <Text style={styles.clearButtonText}>
-            {clearing ? 'Clearing...' : 'Clear consultation history'}
+          <Text style={[styles.segmentText, mode === 'recent' && styles.segmentTextActive]}>
+            Recent
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.segmentButton, mode === 'past' && styles.segmentButtonActive]}
+          onPress={() => switchMode('past')}
+        >
+          <Text style={[styles.segmentText, mode === 'past' && styles.segmentTextActive]}>
+            Past
           </Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>
-        A doctor-facing view of monitored patients, open CKD risk signals, and
-        ML-based follow-up priorities.
-      </Text>
-
       <SectionCard
-        title="Live monitoring summary"
-        subtitle="Aggregated across all CKD patient records in the current backend"
+        title={mode === 'past' ? 'Past overview summary' : 'Live monitoring summary'}
+        subtitle={
+          mode === 'past'
+            ? 'Patient overview data moved from Recent appears here.'
+            : 'Aggregated across recent CKD patient records.'
+        }
       >
         <View style={styles.summaryRow}>
           <View style={styles.summaryTile}>
@@ -169,13 +200,18 @@ export default function DoctorDashboardScreen() {
       </SectionCard>
 
       <SectionCard
-        title="Patient roster"
-        subtitle="Latest ML-based CKD interpretation for each monitored patient"
+        title={mode === 'past' ? 'Past patient overview' : 'Recent patient roster'}
+        subtitle={
+          mode === 'past'
+            ? 'Cleared patient overview records are still visible here.'
+            : 'Latest ML-based CKD interpretation for each recent patient.'
+        }
       >
         {patients.length === 0 ? (
           <Text style={styles.empty}>
-            No patient records yet. Register a patient account and create a profile
-            to populate the roster.
+            {mode === 'past'
+              ? 'No past patient overview yet.'
+              : 'No recent patient records yet.'}
           </Text>
         ) : (
           patients.map((patient) => {
@@ -207,6 +243,12 @@ export default function DoctorDashboardScreen() {
                       Age {patient.age ?? '--'} • {patient.sex || 'Unknown sex'} •
                       Weight {patient.weight ?? '--'} kg
                     </Text>
+
+                    {mode === 'past' && patient.overview_archived_at ? (
+                      <Text style={styles.archivedText}>
+                        Moved to Past: {new Date(patient.overview_archived_at).toLocaleString()}
+                      </Text>
+                    ) : null}
                   </View>
 
                   <StatPill
@@ -232,10 +274,7 @@ export default function DoctorDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
 
   headerRow: {
     flexDirection: 'row',
@@ -280,10 +319,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  summaryRow: {
+  segmentWrap: {
     flexDirection: 'row',
-    gap: 10,
+    backgroundColor: '#EAF1FF',
+    borderRadius: 999,
+    padding: 5,
+    marginBottom: 16,
+    gap: 6,
   },
+
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+
+  segmentButtonActive: {
+    backgroundColor: '#2563EB',
+  },
+
+  segmentText: {
+    color: '#64748B',
+    fontWeight: '900',
+  },
+
+  segmentTextActive: {
+    color: '#FFFFFF',
+  },
+
+  summaryRow: { flexDirection: 'row', gap: 10 },
 
   summaryTile: {
     flex: 1,
@@ -324,6 +389,13 @@ const styles = StyleSheet.create({
   patientMeta: {
     color: colors.muted,
     marginTop: 4,
+  },
+
+  archivedText: {
+    color: '#2563EB',
+    marginTop: 5,
+    fontWeight: '800',
+    fontSize: 12,
   },
 
   patientSummary: {
