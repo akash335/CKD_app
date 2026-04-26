@@ -37,7 +37,7 @@ def build_teleconsultation_response(db: Session, item: Teleconsultation) -> Tele
     latest_reading = (
         db.query(Reading)
         .filter(Reading.patient_id == item.patient_id)
-        .order_by(Reading.reading_date.desc())
+        .order_by(Reading.created_at.desc())
         .first()
     )
 

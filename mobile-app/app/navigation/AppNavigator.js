@@ -18,6 +18,7 @@ import AlertsScreen from '../screens/AlertsScreen';
 import DoctorDashboardScreen from '../screens/DoctorDashboardScreen';
 import TelemedicineScreen from '../screens/TelemedicineScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 
 import { getUser } from '../services/storage';
 import { logout } from '../services/authService';
@@ -26,6 +27,8 @@ import { useAppTheme } from '../utils/theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+/* ---------- UI HELPERS ---------- */
 
 function tabIcon(symbol, focused, colors) {
   return (
@@ -54,7 +57,7 @@ function tabIcon(symbol, focused, colors) {
 
 function HeaderTitle({ title, colors }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', maxWidth: 220 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <View
         style={{
           width: 10,
@@ -64,15 +67,7 @@ function HeaderTitle({ title, colors }) {
           marginRight: 10,
         }}
       />
-      <Text
-        numberOfLines={1}
-        style={{
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: '800',
-          flexShrink: 1,
-        }}
-      >
+      <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>
         {title}
       </Text>
     </View>
@@ -84,51 +79,30 @@ function createBaseTabOptions(colors) {
     headerShadowVisible: false,
     tabBarHideOnKeyboard: true,
     tabBarStyle: {
-      height: 78,
+      height: 75,
       paddingTop: 8,
-      paddingBottom: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
+      paddingBottom: 10,
       backgroundColor: colors.surface,
-    },
-    tabBarLabelStyle: {
-      fontSize: 11,
-      fontWeight: '800',
-      marginTop: 2,
     },
     tabBarActiveTintColor: colors.accent,
     tabBarInactiveTintColor: colors.muted,
-    tabBarBadgeStyle: {
-      backgroundColor: '#DC2626',
-      color: '#fff',
-      fontSize: 10,
-      fontWeight: '800',
-    },
-    headerStyle: {
-      backgroundColor: colors.surface,
-    },
-    headerTitleStyle: {
-      color: colors.text,
-      fontWeight: '800',
-    },
   };
 }
 
-function createScreenHeader(title, onLogout, colors) {
+function createHeader(title, onLogout, colors) {
   return {
     headerTitle: () => <HeaderTitle title={title} colors={colors} />,
-    headerShadowVisible: false,
     headerRight: () => (
       <TouchableOpacity
         onPress={onLogout}
         style={{
           backgroundColor: colors.primarySoft,
-          paddingHorizontal: 14,
-          paddingVertical: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
           borderRadius: 999,
         }}
       >
-        <Text style={{ color: colors.accent, fontWeight: '800', fontSize: 13 }}>
+        <Text style={{ color: colors.accent, fontWeight: '800' }}>
           Sign out
         </Text>
       </TouchableOpacity>
@@ -136,106 +110,127 @@ function createScreenHeader(title, onLogout, colors) {
   };
 }
 
+/* ---------- PATIENT TABS ---------- */
+
 function PatientTabs({ onLogout, colors, unreadCount }) {
   return (
     <Tab.Navigator screenOptions={createBaseTabOptions(colors)}>
+
       <Tab.Screen
         name="Home"
         options={{
-          ...createScreenHeader('CKD Guardian', onLogout, colors),
-          tabBarLabel: 'Home',
+          ...createHeader('CKD Guardian', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('⌂', focused, colors),
         }}
       >
-        {(props) => <DashboardScreen {...props} onSessionExpired={onLogout} />}
+        {(props) => <DashboardScreen {...props} />}
       </Tab.Screen>
 
       <Tab.Screen
         name="Readings"
         options={{
-          ...createScreenHeader('New Reading', onLogout, colors),
-          tabBarLabel: 'Readings',
+          ...createHeader('New Reading', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('🧪', focused, colors),
         }}
       >
-        {(props) => <AddReadingScreen {...props} onSessionExpired={onLogout} />}
+        {(props) => <AddReadingScreen {...props} />}
       </Tab.Screen>
 
       <Tab.Screen
         name="Alerts"
         options={{
-          ...createScreenHeader('CKD Alerts', onLogout, colors),
-          tabBarLabel: 'Alerts',
+          ...createHeader('Alerts', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('⚠', focused, colors),
         }}
       >
-        {(props) => <AlertsScreen {...props} onSessionExpired={onLogout} />}
+        {(props) => <AlertsScreen {...props} />}
       </Tab.Screen>
 
       <Tab.Screen
-        name="Notifications"
+        name="Notify"
         options={{
-          ...createScreenHeader('Notifications', onLogout, colors),
-          tabBarLabel: 'Notify',
+          ...createHeader('Notifications', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('🔔', focused, colors),
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       >
-        {(props) => (
-          <NotificationsScreen {...props} onSessionExpired={onLogout} />
-        )}
+        {(props) => <NotificationsScreen {...props} />}
       </Tab.Screen>
 
       <Tab.Screen
         name="Consult"
         options={{
-          ...createScreenHeader('Consultation', onLogout, colors),
-          tabBarLabel: 'Consult',
+          ...createHeader('Consultation', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('🩺', focused, colors),
         }}
       >
-        {(props) => (
-          <TelemedicineScreen {...props} onSessionExpired={onLogout} />
-        )}
+        {(props) => <TelemedicineScreen {...props} />}
       </Tab.Screen>
+
+      {/* ✅ HISTORY */}
+      <Tab.Screen
+        name="History"
+        options={{
+          ...createHeader('History', onLogout, colors),
+          tabBarIcon: ({ focused }) => tabIcon('⏱', focused, colors),
+        }}
+      >
+        {(props) => <HistoryScreen {...props} />}
+      </Tab.Screen>
+
     </Tab.Navigator>
   );
 }
+
+/* ---------- DOCTOR TABS ---------- */
 
 function DoctorTabs({ onLogout, colors, unreadCount }) {
   return (
     <Tab.Navigator screenOptions={createBaseTabOptions(colors)}>
+
       <Tab.Screen
         name="Overview"
         component={DoctorDashboardScreen}
         options={{
-          ...createScreenHeader('Doctor Overview', onLogout, colors),
-          tabBarLabel: 'Overview',
+          ...createHeader('Doctor Overview', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('⌂', focused, colors),
         }}
       />
+
       <Tab.Screen
-        name="Notifications"
+        name="Notify"
         component={NotificationsScreen}
         options={{
-          ...createScreenHeader('Notifications', onLogout, colors),
-          tabBarLabel: 'Notify',
+          ...createHeader('Notifications', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('🔔', focused, colors),
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
+
       <Tab.Screen
         name="Consult"
         component={TelemedicineScreen}
         options={{
-          ...createScreenHeader('Consult Queue', onLogout, colors),
-          tabBarLabel: 'Consult',
+          ...createHeader('Consult Queue', onLogout, colors),
           tabBarIcon: ({ focused }) => tabIcon('🩺', focused, colors),
         }}
       />
+
+      {/* ✅ HISTORY */}
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          ...createHeader('History', onLogout, colors),
+          tabBarIcon: ({ focused }) => tabIcon('⏱', focused, colors),
+        }}
+      />
+
     </Tab.Navigator>
   );
 }
+
+/* ---------- MAIN NAV ---------- */
 
 export default function AppNavigator() {
   const { colors } = useAppTheme();
@@ -254,98 +249,41 @@ export default function AppNavigator() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    let intervalId;
-
-    const requestBadgePermission = async () => {
+    const loadUnread = async () => {
       try {
-        await Notifications.requestPermissionsAsync({
-          ios: {
-            allowAlert: true,
-            allowBadge: true,
-            allowSound: true,
-          },
-        });
-      } catch (err) {
-        console.log('NOTIFICATION PERMISSION ERROR:', err?.message || err);
-      }
-    };
-
-    const syncUnreadCount = async () => {
-      try {
-        if (!user) {
-          if (mounted) setUnreadCount(0);
-          try {
-            await Notifications.setBadgeCountAsync(0);
-          } catch { }
-          return;
-        }
-
         const count = await getUnreadNotificationCount();
-
-        if (mounted) {
-          setUnreadCount(count);
-        }
-
-        try {
-          await Notifications.setBadgeCountAsync(count);
-        } catch (err) {
-          console.log('BADGE COUNT ERROR:', err?.message || err);
-        }
-      } catch (err) {
-        console.log('UNREAD COUNT ERROR:', err?.response?.data || err.message);
-      }
+        setUnreadCount(count);
+        await Notifications.setBadgeCountAsync(count);
+      } catch { }
     };
 
-    requestBadgePermission();
-    syncUnreadCount();
-    intervalId = setInterval(syncUnreadCount, 8000);
-
-    return () => {
-      mounted = false;
-      if (intervalId) clearInterval(intervalId);
-    };
+    loadUnread();
   }, [user]);
 
   const handleLogout = async () => {
     await logout();
-    try {
-      await Notifications.setBadgeCountAsync(0);
-    } catch { }
-    setUnreadCount(0);
     setUser(null);
+    setUnreadCount(0);
   };
-
-  const authProps = useMemo(() => ({ onAuthSuccess: setUser }), []);
 
   if (booting) {
     return (
-      <View style={styles.bootWrap}>
-        <View style={styles.bootGlow} />
+      <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.bootText}>Launching CKD Guardian...</Text>
       </View>
     );
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShadowVisible: false }}>
+    <Stack.Navigator>
       {!user ? (
         <>
           <Stack.Screen name="Login" options={{ headerShown: false }}>
-            {(props) => <LoginScreen {...props} {...authProps} />}
+            {(props) => <LoginScreen {...props} onAuthSuccess={setUser} />}
           </Stack.Screen>
 
-          <Stack.Screen
-            name="Register"
-            options={{
-              title: 'Create your CKD Guardian account',
-              headerStyle: { backgroundColor: colors.surface },
-              headerTintColor: colors.text,
-              headerTitleStyle: { color: colors.text, fontWeight: '800' },
-            }}
-          >
-            {(props) => <RegisterScreen {...props} {...authProps} />}
+          <Stack.Screen name="Register">
+            {(props) => <RegisterScreen {...props} onAuthSuccess={setUser} />}
           </Stack.Screen>
         </>
       ) : user.role === 'doctor' ? (
@@ -375,24 +313,11 @@ export default function AppNavigator() {
 
 function createStyles(colors) {
   return StyleSheet.create({
-    bootWrap: {
+    center: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: colors.background,
-    },
-    bootGlow: {
-      position: 'absolute',
-      width: 220,
-      height: 220,
-      borderRadius: 999,
-      backgroundColor: colors.glow,
-      opacity: 0.7,
-    },
-    bootText: {
-      marginTop: 12,
-      color: colors.muted,
-      fontWeight: '600',
     },
   });
 }
