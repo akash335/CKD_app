@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from ..database import get_db
 from ..models.patient import Patient
@@ -73,6 +74,9 @@ def build_teleconsultation_response(
         prescription_note=item.prescription_note,
         patient_instruction=item.patient_instruction,
 
+        is_archived=bool(item.is_archived),
+        archived_at=item.archived_at,
+
         latest_risk_score=latest_prediction.risk_score if latest_prediction else None,
         latest_risk_level=latest_prediction.risk_level if latest_prediction else None,
         trend_status=latest_prediction.trend_status if latest_prediction else None,
@@ -83,6 +87,15 @@ def build_teleconsultation_response(
         latest_systolic_bp=latest_reading.systolic_bp if latest_reading else None,
         latest_diastolic_bp=latest_reading.diastolic_bp if latest_reading else None,
     )
+
+
+def get_current_patient_for_user(db: Session, current_user):
+    patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+
+    return patient
 
 
 @router.post("", response_model=TeleconsultationOut)
@@ -108,7 +121,12 @@ def create_teleconsultation(
     if doctor.id != current_user.id:
         raise HTTPException(status_code=403, detail="Doctor ID does not match current user")
 
-    item = Teleconsultation(**payload.model_dump())
+    item = Teleconsultation(
+        **payload.model_dump(),
+        is_archived=False,
+        archived_at=None,
+    )
+
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -148,6 +166,73 @@ def create_teleconsultation(
     return build_teleconsultation_response(db, item)
 
 
+@router.get("/history/recent", response_model=list[TeleconsultationOut])
+def get_recent_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    query = db.query(Teleconsultation).filter(Teleconsultation.is_archived == False)  # noqa: E712
+
+    if current_user.role == "doctor":
+        query = query.filter(Teleconsultation.doctor_id == current_user.id)
+    else:
+        patient = get_current_patient_for_user(db, current_user)
+        query = query.filter(Teleconsultation.patient_id == patient.id)
+
+    rows = query.order_by(Teleconsultation.appointment_time.desc()).all()
+
+    return [build_teleconsultation_response(db, row) for row in rows]
+
+
+@router.get("/history/past", response_model=list[TeleconsultationOut])
+def get_past_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    query = db.query(Teleconsultation).filter(Teleconsultation.is_archived == True)  # noqa: E712
+
+    if current_user.role == "doctor":
+        query = query.filter(Teleconsultation.doctor_id == current_user.id)
+    else:
+        patient = get_current_patient_for_user(db, current_user)
+        query = query.filter(Teleconsultation.patient_id == patient.id)
+
+    rows = (
+        query
+        .order_by(Teleconsultation.archived_at.desc().nullslast(), Teleconsultation.appointment_time.desc())
+        .all()
+    )
+
+    return [build_teleconsultation_response(db, row) for row in rows]
+
+
+@router.put("/history/archive")
+def archive_recent_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    query = db.query(Teleconsultation).filter(Teleconsultation.is_archived == False)  # noqa: E712
+
+    if current_user.role == "doctor":
+        query = query.filter(Teleconsultation.doctor_id == current_user.id)
+    else:
+        patient = get_current_patient_for_user(db, current_user)
+        query = query.filter(Teleconsultation.patient_id == patient.id)
+
+    rows = query.all()
+
+    for item in rows:
+        item.is_archived = True
+        item.archived_at = func.now()
+
+    db.commit()
+
+    return {
+        "message": "Recent consultations moved to past",
+        "archived": len(rows),
+    }
+
+
 @router.get("/patient/{patient_id}", response_model=list[TeleconsultationOut])
 def get_for_patient(
     patient_id: int,
@@ -155,6 +240,7 @@ def get_for_patient(
     current_user=Depends(get_current_user),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
+
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -163,7 +249,10 @@ def get_for_patient(
 
     rows = (
         db.query(Teleconsultation)
-        .filter(Teleconsultation.patient_id == patient_id)
+        .filter(
+            Teleconsultation.patient_id == patient_id,
+            Teleconsultation.is_archived == False,  # noqa: E712
+        )
         .order_by(Teleconsultation.appointment_time.desc())
         .all()
     )
@@ -182,43 +271,15 @@ def get_for_doctor(
 
     rows = (
         db.query(Teleconsultation)
-        .filter(Teleconsultation.doctor_id == doctor_id)
+        .filter(
+            Teleconsultation.doctor_id == doctor_id,
+            Teleconsultation.is_archived == False,  # noqa: E712
+        )
         .order_by(Teleconsultation.appointment_time.desc())
         .all()
     )
 
     return [build_teleconsultation_response(db, row) for row in rows]
-
-
-@router.delete("/history/clear")
-def clear_my_teleconsultation_history(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    if current_user.role == "doctor":
-        deleted = (
-            db.query(Teleconsultation)
-            .filter(Teleconsultation.doctor_id == current_user.id)
-            .delete(synchronize_session=False)
-        )
-
-    else:
-        patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
-        if not patient:
-            raise HTTPException(status_code=404, detail="Patient profile not found")
-
-        deleted = (
-            db.query(Teleconsultation)
-            .filter(Teleconsultation.patient_id == patient.id)
-            .delete(synchronize_session=False)
-        )
-
-    db.commit()
-
-    return {
-        "message": "Consultation history cleared",
-        "deleted": deleted,
-    }
 
 
 @router.put("/{consultation_id}", response_model=TeleconsultationOut)

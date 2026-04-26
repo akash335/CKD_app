@@ -30,6 +30,9 @@ class PatientOut(BaseModel):
     family_history: bool = False
     doctor_id: Optional[int] = None
 
+    overview_archived: bool = False
+    overview_archived_at: Optional[datetime] = None
+
     user_name: Optional[str] = None
     user_email: Optional[str] = None
 

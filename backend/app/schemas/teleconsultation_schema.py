@@ -50,6 +50,9 @@ class TeleconsultationOut(BaseModel):
     prescription_note: Optional[str] = None
     patient_instruction: Optional[str] = None
 
+    is_archived: bool = False
+    archived_at: Optional[datetime] = None
+
     latest_risk_score: Optional[float] = None
     latest_risk_level: Optional[str] = None
     trend_status: Optional[str] = None
