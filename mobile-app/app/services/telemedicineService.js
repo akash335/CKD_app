@@ -8,3 +8,6 @@ export const getTeleconsultationsForDoctor = async (doctorId) =>
 
 export const createTeleconsultation = async (payload) =>
   (await api.post('/teleconsultations', payload)).data;
+
+export const clearTeleconsultationHistory = async () =>
+  (await api.delete('/teleconsultations/history/clear')).data;

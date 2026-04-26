@@ -19,8 +19,12 @@ from .deps import get_current_user
 router = APIRouter(prefix="/teleconsultations", tags=["teleconsultations"])
 
 
-def build_teleconsultation_response(db: Session, item: Teleconsultation):
+def build_teleconsultation_response(
+    db: Session,
+    item: Teleconsultation,
+) -> TeleconsultationOut:
     patient = db.query(Patient).filter(Patient.id == item.patient_id).first()
+
     patient_user = None
     if patient and patient.user_id:
         patient_user = db.query(User).filter(User.id == patient.user_id).first()
@@ -43,6 +47,7 @@ def build_teleconsultation_response(db: Session, item: Teleconsultation):
 
     return TeleconsultationOut(
         id=item.id,
+
         patient_id=item.patient_id,
         patient_name=(
             patient_user.name
@@ -63,6 +68,7 @@ def build_teleconsultation_response(db: Session, item: Teleconsultation):
         status=item.status,
         urgency=item.urgency,
         needs_immediate_attention=item.needs_immediate_attention,
+
         doctor_advice=item.doctor_advice,
         prescription_note=item.prescription_note,
         patient_instruction=item.patient_instruction,
@@ -99,6 +105,9 @@ def create_teleconsultation(
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
 
+    if doctor.id != current_user.id:
+        raise HTTPException(status_code=403, detail="Doctor ID does not match current user")
+
     item = Teleconsultation(**payload.model_dump())
     db.add(item)
     db.commit()
@@ -112,9 +121,9 @@ def create_teleconsultation(
             patient_name=patient_user.name,
             appointment_time=str(item.appointment_time),
             meeting_link=item.meeting_link,
-            doctor_advice=getattr(item, "doctor_advice", None),
-            prescription_note=getattr(item, "prescription_note", None),
-            patient_instruction=getattr(item, "patient_instruction", None),
+            doctor_advice=item.doctor_advice,
+            prescription_note=item.prescription_note,
+            patient_instruction=item.patient_instruction,
         )
 
     if patient_user:
@@ -155,10 +164,7 @@ def get_for_patient(
     rows = (
         db.query(Teleconsultation)
         .filter(Teleconsultation.patient_id == patient_id)
-        .order_by(
-            Teleconsultation.needs_immediate_attention.desc(),
-            Teleconsultation.appointment_time.desc(),
-        )
+        .order_by(Teleconsultation.appointment_time.desc())
         .all()
     )
 
@@ -177,14 +183,42 @@ def get_for_doctor(
     rows = (
         db.query(Teleconsultation)
         .filter(Teleconsultation.doctor_id == doctor_id)
-        .order_by(
-            Teleconsultation.needs_immediate_attention.desc(),
-            Teleconsultation.appointment_time.desc(),
-        )
+        .order_by(Teleconsultation.appointment_time.desc())
         .all()
     )
 
     return [build_teleconsultation_response(db, row) for row in rows]
+
+
+@router.delete("/history/clear")
+def clear_my_teleconsultation_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role == "doctor":
+        deleted = (
+            db.query(Teleconsultation)
+            .filter(Teleconsultation.doctor_id == current_user.id)
+            .delete(synchronize_session=False)
+        )
+
+    else:
+        patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient profile not found")
+
+        deleted = (
+            db.query(Teleconsultation)
+            .filter(Teleconsultation.patient_id == patient.id)
+            .delete(synchronize_session=False)
+        )
+
+    db.commit()
+
+    return {
+        "message": "Consultation history cleared",
+        "deleted": deleted,
+    }
 
 
 @router.put("/{consultation_id}", response_model=TeleconsultationOut)
@@ -199,6 +233,7 @@ def update_teleconsultation(
         .filter(Teleconsultation.id == consultation_id)
         .first()
     )
+
     if not item:
         raise HTTPException(status_code=404, detail="Teleconsultation not found")
 
@@ -212,6 +247,7 @@ def update_teleconsultation(
     db.refresh(item)
 
     patient = db.query(Patient).filter(Patient.id == item.patient_id).first()
+
     patient_user = None
     if patient:
         patient_user = db.query(User).filter(User.id == patient.user_id).first()

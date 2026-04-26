@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Linking,
     RefreshControl,
     ScrollView,
@@ -9,9 +10,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { getUser } from '../services/storage';
 import {
+    clearTeleconsultationHistory,
     getTeleconsultationsForDoctor,
     getTeleconsultationsForPatient,
 } from '../services/telemedicineService';
@@ -23,13 +26,34 @@ export default function HistoryScreen() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [clearing, setClearing] = useState(false);
 
     useEffect(() => {
         load();
     }, []);
 
-    const load = async () => {
+    useFocusEffect(
+        useCallback(() => {
+            load(false);
+        }, [])
+    );
+
+    const sortLatestFirst = (rows) => {
+        return [...rows].sort((a, b) => {
+            const dateA = new Date(a.appointment_time).getTime();
+            const dateB = new Date(b.appointment_time).getTime();
+
+            if (!Number.isNaN(dateA) && !Number.isNaN(dateB)) {
+                return dateB - dateA;
+            }
+
+            return (b.id || 0) - (a.id || 0);
+        });
+    };
+
+    const load = async (showLoader = true) => {
         try {
+            if (showLoader) setLoading(true);
             setRefreshing(true);
 
             const savedUser = await getUser();
@@ -44,13 +68,8 @@ export default function HistoryScreen() {
                 res = await getTeleconsultationsForPatient(patient.id);
             }
 
-            const sorted = Array.isArray(res)
-                ? [...res].sort(
-                    (a, b) => new Date(b.appointment_time) - new Date(a.appointment_time)
-                )
-                : [];
-
-            setData(sorted);
+            const rows = Array.isArray(res) ? sortLatestFirst(res) : [];
+            setData(rows);
         } catch (e) {
             console.log('HISTORY ERROR:', e?.response?.data || e.message);
             setData([]);
@@ -60,6 +79,39 @@ export default function HistoryScreen() {
         }
     };
 
+    const clearHistory = async () => {
+        Alert.alert(
+            'Clear history?',
+            'This will remove all consultation history for this account.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Clear',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setClearing(true);
+                            await clearTeleconsultationHistory();
+                            setData([]);
+                            Alert.alert('Cleared', 'Consultation history cleared.');
+                        } catch (e) {
+                            Alert.alert(
+                                'Unable to clear',
+                                e?.response?.data?.detail ||
+                                JSON.stringify(e?.response?.data || e.message)
+                            );
+                        } finally {
+                            setClearing(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const title = useMemo(() => {
         if (user?.role === 'doctor') return 'Patient Consultation History';
         return 'Your Consultation History';
@@ -67,10 +119,10 @@ export default function HistoryScreen() {
 
     const subtitle = useMemo(() => {
         if (user?.role === 'doctor') {
-            return 'Review scheduled consultations, patient names, advice, prescriptions, and CKD overview.';
+            return 'Latest consultations appear first. Review patient names, advice, prescriptions, appointment time, and CKD overview.';
         }
 
-        return 'View your consultation details, doctor notes, prescription, and CKD overview.';
+        return 'Latest consultations appear first. View your doctor notes, prescription, appointment time, and CKD overview.';
     }, [user]);
 
     const formatDateTime = (value) => {
@@ -103,7 +155,7 @@ export default function HistoryScreen() {
 
             await Linking.openURL(finalUrl);
         } catch {
-            console.log('Unable to open meeting link');
+            Alert.alert('Unable to open meeting link');
         }
     };
 
@@ -127,14 +179,12 @@ export default function HistoryScreen() {
         );
     };
 
-    const renderMetric = (label, value, suffix = '') => {
+    const renderMetric = (label, value) => {
         const hasValue = value !== undefined && value !== null && value !== '';
 
         return (
             <View style={styles.metricTile}>
-                <Text style={styles.metricValue}>
-                    {hasValue ? `${value}${suffix}` : '--'}
-                </Text>
+                <Text style={styles.metricValue}>{hasValue ? value : '--'}</Text>
                 <Text style={styles.metricLabel}>{label}</Text>
             </View>
         );
@@ -169,7 +219,8 @@ export default function HistoryScreen() {
                         {renderMetric('eGFR', item.latest_egfr)}
                         {renderMetric(
                             'Blood pressure',
-                            item.latest_systolic_bp !== undefined && item.latest_diastolic_bp !== undefined
+                            item.latest_systolic_bp !== undefined &&
+                                item.latest_diastolic_bp !== undefined
                                 ? `${item.latest_systolic_bp}/${item.latest_diastolic_bp}`
                                 : null
                         )}
@@ -188,13 +239,34 @@ export default function HistoryScreen() {
         );
     }
 
-    if (!data.length) {
-        return (
-            <ScrollView
-                style={styles.container}
-                contentContainerStyle={styles.emptyWrap}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
-            >
+    return (
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={data.length ? styles.content : styles.emptyWrap}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(false)} />}
+        >
+            <View style={styles.topRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.kicker}>CKD Guardian</Text>
+                    <Text style={styles.pageTitle}>{title}</Text>
+                </View>
+
+                {data.length > 0 ? (
+                    <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={clearHistory}
+                        disabled={clearing}
+                    >
+                        <Text style={styles.clearButtonText}>
+                            {clearing ? 'Clearing...' : 'Clear'}
+                        </Text>
+                    </TouchableOpacity>
+                ) : null}
+            </View>
+
+            <Text style={styles.subtitle}>{subtitle}</Text>
+
+            {!data.length ? (
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyTitle}>No history available</Text>
                     <Text style={styles.emptyText}>
@@ -203,89 +275,85 @@ export default function HistoryScreen() {
                             : 'Your doctor-scheduled consultations will appear here.'}
                     </Text>
                 </View>
-            </ScrollView>
-        );
-    }
+            ) : (
+                data.map((item, index) => {
+                    const patientName =
+                        item.patient_name ||
+                        item.patient?.user?.name ||
+                        item.patient?.name ||
+                        `Patient ${item.patient_id}`;
 
-    return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
-        >
-            <Text style={styles.kicker}>CKD Guardian</Text>
-            <Text style={styles.pageTitle}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
+                    const doctorName =
+                        item.doctor_name ||
+                        item.doctor?.name ||
+                        `Doctor ${item.doctor_id}`;
 
-            {data.map((item) => {
-                const patientName =
-                    item.patient_name ||
-                    item.patient?.user?.name ||
-                    item.patient?.name ||
-                    `Patient ${item.patient_id}`;
+                    const displayName = user?.role === 'doctor' ? patientName : doctorName;
 
-                const doctorName =
-                    item.doctor_name ||
-                    item.doctor?.name ||
-                    `Doctor ${item.doctor_id}`;
+                    const secondaryName =
+                        user?.role === 'doctor'
+                            ? `Doctor: ${doctorName}`
+                            : `Patient: ${patientName}`;
 
-                const displayName =
-                    user?.role === 'doctor' ? patientName : doctorName;
+                    return (
+                        <View key={item.id} style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.cardTitle}>{displayName}</Text>
+                                    <Text style={styles.cardSubtitle}>{secondaryName}</Text>
+                                    <Text style={styles.orderText}>
+                                        {index === 0 ? 'Latest consultation' : `History item ${index + 1}`}
+                                    </Text>
+                                </View>
 
-                const secondaryName =
-                    user?.role === 'doctor'
-                        ? `Doctor: ${doctorName}`
-                        : `Patient: ${patientName}`;
-
-                return (
-                    <View key={item.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.cardTitle}>{displayName}</Text>
-                                <Text style={styles.cardSubtitle}>{secondaryName}</Text>
-                            </View>
-
-                            <View
-                                style={[
-                                    styles.statusPill,
-                                    item.needs_immediate_attention && styles.urgentPill,
-                                ]}
-                            >
-                                <Text
+                                <View
                                     style={[
-                                        styles.statusText,
-                                        item.needs_immediate_attention && styles.urgentText,
+                                        styles.statusPill,
+                                        item.needs_immediate_attention && styles.urgentPill,
                                     ]}
                                 >
-                                    {item.status || 'scheduled'}
-                                </Text>
+                                    <Text
+                                        style={[
+                                            styles.statusText,
+                                            item.needs_immediate_attention && styles.urgentText,
+                                        ]}
+                                    >
+                                        {item.status || 'scheduled'}
+                                    </Text>
+                                </View>
                             </View>
+
+                            <View style={styles.infoBox}>
+                                {renderInfoRow(
+                                    'Appointment time',
+                                    formatDateTime(item.appointment_time)
+                                )}
+                                {renderInfoRow('Urgency', item.urgency || 'routine')}
+                                {renderInfoRow(
+                                    'Meeting link',
+                                    item.meeting_link || 'Will be shared soon'
+                                )}
+                            </View>
+
+                            {item.meeting_link ? (
+                                <TouchableOpacity
+                                    style={styles.meetingButton}
+                                    onPress={() => openMeetingLink(item.meeting_link)}
+                                >
+                                    <Text style={styles.meetingButtonText}>Open Meeting Link</Text>
+                                </TouchableOpacity>
+                            ) : null}
+
+                            {renderTextSection('Consultation Summary', item.summary)}
+                            {renderTextSection('Doctor Advice', item.doctor_advice)}
+                            {renderTextSection('Prescription Note', item.prescription_note)}
+                            {renderTextSection('Patient Instructions', item.patient_instruction)}
+
+                            {renderHealthOverview(item)}
                         </View>
-
-                        <View style={styles.infoBox}>
-                            {renderInfoRow('Appointment time', formatDateTime(item.appointment_time))}
-                            {renderInfoRow('Urgency', item.urgency || 'routine')}
-                            {renderInfoRow('Meeting link', item.meeting_link || 'Will be shared soon')}
-                        </View>
-
-                        {item.meeting_link ? (
-                            <TouchableOpacity
-                                style={styles.meetingButton}
-                                onPress={() => openMeetingLink(item.meeting_link)}
-                            >
-                                <Text style={styles.meetingButtonText}>Open Meeting Link</Text>
-                            </TouchableOpacity>
-                        ) : null}
-
-                        {renderTextSection('Consultation Summary', item.summary)}
-                        {renderTextSection('Doctor Advice', item.doctor_advice)}
-                        {renderTextSection('Prescription Note', item.prescription_note)}
-                        {renderTextSection('Patient Instructions', item.patient_instruction)}
-
-                        {renderHealthOverview(item)}
-                    </View>
-                );
-            })}
+                    );
+                })
+            )}
         </ScrollView>
     );
 }
@@ -298,6 +366,16 @@ const styles = StyleSheet.create({
     content: {
         padding: 18,
         paddingBottom: 36,
+    },
+    emptyWrap: {
+        flexGrow: 1,
+        padding: 18,
+        justifyContent: 'center',
+    },
+    topRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
     },
     kicker: {
         color: '#2563EB',
@@ -316,6 +394,17 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 22,
         marginBottom: 18,
+    },
+    clearButton: {
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 999,
+    },
+    clearButtonText: {
+        color: '#B91C1C',
+        fontWeight: '900',
+        fontSize: 13,
     },
     card: {
         backgroundColor: '#FFFFFF',
@@ -346,6 +435,12 @@ const styles = StyleSheet.create({
         color: '#64748B',
         fontSize: 14,
         fontWeight: '600',
+    },
+    orderText: {
+        color: '#2563EB',
+        fontSize: 12,
+        fontWeight: '900',
+        marginTop: 6,
     },
     statusPill: {
         backgroundColor: '#DBEAFE',
@@ -470,11 +565,6 @@ const styles = StyleSheet.create({
         marginTop: 12,
         color: '#64748B',
         fontWeight: '700',
-    },
-    emptyWrap: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        padding: 24,
     },
     emptyCard: {
         backgroundColor: '#FFFFFF',
