@@ -25,12 +25,13 @@ frontend_origins = [
     "http://127.0.0.1:19006",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://your-frontend-site.com",
+    "https://ckd-guardian.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=frontend_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
