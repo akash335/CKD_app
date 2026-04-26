@@ -195,7 +195,9 @@ export default function DashboardScreen({ navigation, onSessionExpired }) {
         <View style={styles.heroChipRow}>
           <View style={styles.heroChip}>
             <Text style={styles.heroChipText}>
-              {patient ? `Patient ID #${patient.id}` : 'Kidney monitoring'}
+              {patient
+                ? patient.user_name || patient.name || patient.patient_name || `Patient ID #${patient.id}`
+                : 'Kidney monitoring'}
             </Text>
           </View>
           <View style={styles.heroChip}>
