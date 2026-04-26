@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -100,6 +102,7 @@ function createHeader(title, onLogout, colors) {
           paddingHorizontal: 12,
           paddingVertical: 6,
           borderRadius: 999,
+          marginRight: 6,
         }}
       >
         <Text style={{ color: colors.accent, fontWeight: '800' }}>
@@ -115,7 +118,6 @@ function createHeader(title, onLogout, colors) {
 function PatientTabs({ onLogout, colors, unreadCount }) {
   return (
     <Tab.Navigator screenOptions={createBaseTabOptions(colors)}>
-
       <Tab.Screen
         name="Home"
         options={{
@@ -167,7 +169,6 @@ function PatientTabs({ onLogout, colors, unreadCount }) {
         {(props) => <TelemedicineScreen {...props} />}
       </Tab.Screen>
 
-      {/* ✅ HISTORY */}
       <Tab.Screen
         name="History"
         options={{
@@ -177,7 +178,6 @@ function PatientTabs({ onLogout, colors, unreadCount }) {
       >
         {(props) => <HistoryScreen {...props} />}
       </Tab.Screen>
-
     </Tab.Navigator>
   );
 }
@@ -187,7 +187,6 @@ function PatientTabs({ onLogout, colors, unreadCount }) {
 function DoctorTabs({ onLogout, colors, unreadCount }) {
   return (
     <Tab.Navigator screenOptions={createBaseTabOptions(colors)}>
-
       <Tab.Screen
         name="Overview"
         component={DoctorDashboardScreen}
@@ -216,7 +215,6 @@ function DoctorTabs({ onLogout, colors, unreadCount }) {
         }}
       />
 
-      {/* ✅ HISTORY */}
       <Tab.Screen
         name="History"
         component={HistoryScreen}
@@ -225,55 +223,13 @@ function DoctorTabs({ onLogout, colors, unreadCount }) {
           tabBarIcon: ({ focused }) => tabIcon('⏱', focused, colors),
         }}
       />
-
     </Tab.Navigator>
   );
 }
 
-/* ---------- MAIN NAV ---------- */
+/* ---------- ROOT STACK ---------- */
 
-export default function AppNavigator() {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
-  const [user, setUser] = useState(null);
-  const [booting, setBooting] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    (async () => {
-      const savedUser = await getUser();
-      setUser(savedUser);
-      setBooting(false);
-    })();
-  }, []);
-
-  useEffect(() => {
-    const loadUnread = async () => {
-      try {
-        const count = await getUnreadNotificationCount();
-        setUnreadCount(count);
-        await Notifications.setBadgeCountAsync(count);
-      } catch { }
-    };
-
-    loadUnread();
-  }, [user]);
-
-  const handleLogout = async () => {
-    await logout();
-    setUser(null);
-    setUnreadCount(0);
-  };
-
-  if (booting) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
-  }
-
+function RootStack({ user, setUser, handleLogout, colors, unreadCount }) {
   return (
     <Stack.Navigator>
       {!user ? (
@@ -282,7 +238,15 @@ export default function AppNavigator() {
             {(props) => <LoginScreen {...props} onAuthSuccess={setUser} />}
           </Stack.Screen>
 
-          <Stack.Screen name="Register">
+          <Stack.Screen
+            name="Register"
+            options={{
+              headerTitle: 'Create account',
+              headerShadowVisible: false,
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.text,
+            }}
+          >
             {(props) => <RegisterScreen {...props} onAuthSuccess={setUser} />}
           </Stack.Screen>
         </>
@@ -311,6 +275,79 @@ export default function AppNavigator() {
   );
 }
 
+/* ---------- MAIN NAV ---------- */
+
+export default function AppNavigator() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const savedUser = await getUser();
+      setUser(savedUser);
+      setBooting(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      if (!user) {
+        setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const count = await getUnreadNotificationCount();
+        setUnreadCount(count);
+
+        if (Platform.OS !== 'web') {
+          await Notifications.setBadgeCountAsync(count);
+        }
+      } catch (e) {
+        console.log('UNREAD NOTIFICATION ERROR:', e?.response?.data || e.message);
+      }
+    };
+
+    loadUnread();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+    setUnreadCount(0);
+
+    if (Platform.OS !== 'web') {
+      await Notifications.setBadgeCountAsync(0);
+    }
+  };
+
+  if (booting) {
+    return (
+      <NavigationContainer>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </NavigationContainer>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <RootStack
+        user={user}
+        setUser={setUser}
+        handleLogout={handleLogout}
+        colors={colors}
+        unreadCount={unreadCount}
+      />
+    </NavigationContainer>
+  );
+}
+
 function createStyles(colors) {
   return StyleSheet.create({
     center: {
@@ -318,6 +355,27 @@ function createStyles(colors) {
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: colors.background,
+    },
+
+    webRoot: {
+      flex: 1,
+      width: '100%',
+      minHeight: '100vh',
+      backgroundColor: '#E5E7EB',
+      alignItems: 'center',
+    },
+
+    webShell: {
+      flex: 1,
+      width: '100%',
+      maxWidth: 430,
+      minHeight: '100vh',
+      backgroundColor: colors.background,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOpacity: 0.18,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 0 },
     },
   });
 }

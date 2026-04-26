@@ -9,20 +9,29 @@
       "android",
       "web"
     ],
+    "icon": "./assets/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ckdguardian.app"
+      "bundleIdentifier": "com.ckdguardian.app",
+      "icon": "./assets/icon.png"
     },
     "android": {
-      "package": "com.ckdguardian.app"
+      "package": "com.ckdguardian.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563EB"
+      }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#F5F8FC"
     },
     "extra": {
