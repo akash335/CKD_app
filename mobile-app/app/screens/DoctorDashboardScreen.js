@@ -240,8 +240,13 @@ export default function DoctorDashboardScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.patientName}>{patientName}</Text>
                     <Text style={styles.patientMeta}>
-                      Age {patient.age ?? '--'} • {patient.sex || 'Unknown sex'} •
-                      Weight {patient.weight ?? '--'} kg
+                      {[
+                        patient.age ? `Age ${patient.age}` : null,
+                        patient.sex ? patient.sex : null,
+                        patient.weight ? `Weight ${patient.weight} kg` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' • ') || 'Patient profile details not added yet'}
                     </Text>
 
                     {mode === 'past' && patient.overview_archived_at ? (

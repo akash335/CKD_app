@@ -229,7 +229,9 @@ export default function HistoryScreen() {
                         {renderMetric(
                             'Blood pressure',
                             item.latest_systolic_bp !== undefined &&
-                                item.latest_diastolic_bp !== undefined
+                                item.latest_systolic_bp !== null &&
+                                item.latest_diastolic_bp !== undefined &&
+                                item.latest_diastolic_bp !== null
                                 ? `${item.latest_systolic_bp}/${item.latest_diastolic_bp}`
                                 : null
                         )}

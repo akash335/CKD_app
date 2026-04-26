@@ -70,11 +70,11 @@ export default function DashboardScreen({ navigation, onSessionExpired }) {
 
         if (status === 404) {
           profile = await createPatientProfile({
-            age: 35,
-            sex: 'male',
-            weight: 70,
+            age: null,
+            sex: null,
+            weight: null,
             diabetes: false,
-            hypertension: true,
+            hypertension: false,
             family_history: false,
           });
         } else if (status === 401) {
