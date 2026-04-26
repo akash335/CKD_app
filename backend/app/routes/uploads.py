@@ -6,8 +6,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from sqlalchemy.orm import Session
-from PIL import Image
-import pytesseract
 
 from ..database import get_db
 from ..services.upload_service import save_excel_readings
@@ -96,6 +94,33 @@ def _extract_ckd_values_from_text(text: str):
     }
 
 
+def _validate_image_type(file: UploadFile):
+    allowed_types = {
+        "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+    }
+
+    content_type = (file.content_type or "").lower()
+    if content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Upload JPG, PNG, or WEBP image only",
+        )
+    return allowed_types[content_type]
+
+
+def _save_upload_file(file: UploadFile, ext: str):
+    filename = f"{uuid4().hex}{ext}"
+    save_path = os.path.join(REPORT_DIR, filename)
+
+    with open(save_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return filename, save_path
+
+
 @router.post("/excel/{patient_id}")
 def upload_excel(
     patient_id: int,
@@ -115,16 +140,19 @@ def upload_excel(
         shutil.copyfileobj(file.file, tmp)
         temp_path = tmp.name
 
-    readings = save_excel_readings(db, patient_id, temp_path)
-    for reading in readings:
-        run_prediction(db, patient_id, reading)
+    try:
+        readings = save_excel_readings(db, patient_id, temp_path)
+        for reading in readings:
+            run_prediction(db, patient_id, reading)
 
-    os.remove(temp_path)
-    return {
-        "message": "File processed successfully",
-        "rows_saved": len(readings),
-        "note": "Sensor workbooks are auto-converted when clinical columns are not found.",
-    }
+        return {
+            "message": "File processed successfully",
+            "rows_saved": len(readings),
+            "note": "Sensor workbooks are auto-converted when clinical columns are not found.",
+        }
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @router.post("/report-image")
@@ -132,26 +160,8 @@ def upload_report_image(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
 ):
-    allowed_types = {
-        "image/jpeg": ".jpg",
-        "image/jpg": ".jpg",
-        "image/png": ".png",
-        "image/webp": ".webp",
-    }
-
-    content_type = (file.content_type or "").lower()
-    if content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400,
-            detail="Upload JPG, PNG, or WEBP image only",
-        )
-
-    ext = allowed_types[content_type]
-    filename = f"{uuid4().hex}{ext}"
-    save_path = os.path.join(REPORT_DIR, filename)
-
-    with open(save_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    ext = _validate_image_type(file)
+    filename, _ = _save_upload_file(file, ext)
 
     return {
         "message": "Report image uploaded successfully",
@@ -165,25 +175,32 @@ def extract_report_values(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
 ):
-    allowed_types = {
-        "image/jpeg": ".jpg",
-        "image/jpg": ".jpg",
-        "image/png": ".png",
-        "image/webp": ".webp",
-    }
-
-    content_type = (file.content_type or "").lower()
-    if content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Upload JPG, PNG, or WEBP image only")
-
-    ext = allowed_types[content_type]
-    filename = f"{uuid4().hex}{ext}"
-    save_path = os.path.join(REPORT_DIR, filename)
-
-    with open(save_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    ext = _validate_image_type(file)
+    filename, save_path = _save_upload_file(file, ext)
 
     try:
+        try:
+            from PIL import Image
+        except Exception:
+            raise HTTPException(
+                status_code=503,
+                detail="Image processing is not available on this deployment.",
+            )
+
+        try:
+            import pytesseract
+        except Exception:
+            raise HTTPException(
+                status_code=503,
+                detail="OCR support is not installed on this deployment.",
+            )
+
+        if shutil.which("tesseract") is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Tesseract OCR engine is not available on this deployment.",
+            )
+
         text = pytesseract.image_to_string(Image.open(save_path))
         extracted = _extract_ckd_values_from_text(text)
 
@@ -193,5 +210,10 @@ def extract_report_values(
             "extracted_values": extracted,
             "raw_text": text,
         }
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Report extraction failed: {str(exc)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Report extraction failed: {str(exc)}",
+        )
