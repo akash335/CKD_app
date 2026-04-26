@@ -68,7 +68,6 @@ export default function TelemedicineScreen() {
     let minutes = 0;
 
     const timeMatch = cleanTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
-
     if (!timeMatch) return null;
 
     hours = parseInt(timeMatch[1], 10);
@@ -80,13 +79,22 @@ export default function TelemedicineScreen() {
 
     if (meridian === 'pm' && hours < 12) hours += 12;
     if (meridian === 'am' && hours === 12) hours = 0;
-
     if (hours < 0 || hours > 23) return null;
 
     const hh = String(hours).padStart(2, '0');
     const mm = String(minutes).padStart(2, '0');
 
     return `${year}-${month}-${day}T${hh}:${mm}:00`;
+  };
+
+  const getPatientDisplayName = (patient) => {
+    return (
+      patient?.name ||
+      patient?.user_name ||
+      patient?.patient_name ||
+      patient?.full_name ||
+      `Patient #${patient?.id}`
+    );
   };
 
   const load = async () => {
@@ -187,6 +195,63 @@ export default function TelemedicineScreen() {
     }
   };
 
+  const renderHealthOverview = (item) => (
+    <View style={styles.overviewBox}>
+      <Text style={styles.overviewTitle}>CKD / Health Overview</Text>
+
+      <View style={styles.metricGrid}>
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_risk_score != null ? item.latest_risk_score : '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Risk score</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_risk_level || '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Risk level</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.trend_status || '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Trend</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_creatinine ?? '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Creatinine</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_acr ?? '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Urine ACR</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_egfr ?? '--'}
+          </Text>
+          <Text style={styles.metricLabel}>eGFR</Text>
+        </View>
+
+        <View style={styles.metricTile}>
+          <Text style={styles.metricValue}>
+            {item.latest_systolic_bp ?? '--'}/{item.latest_diastolic_bp ?? '--'}
+          </Text>
+          <Text style={styles.metricLabel}>Blood pressure</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <ScrollView
       style={styles.container}
@@ -196,16 +261,17 @@ export default function TelemedicineScreen() {
       }
     >
       <Text style={styles.kicker}>CKD Guardian</Text>
-      <Text style={styles.title}>CKD Consult</Text>
+      <Text style={styles.title}>Consultation History</Text>
       <Text style={styles.subtitle}>
-        Doctor follow-up, CKD review planning, and consultation scheduling in one
-        simple workflow.
+        {role === 'doctor'
+          ? `Dr. ${user?.name || 'Doctor'}, review consultation history, patient names, and kidney health overview.`
+          : `${user?.name || 'Patient'}, view your past consultations, doctor notes, and CKD overview.`}
       </Text>
 
       {role === 'doctor' ? (
         <SectionCard
           title="Schedule doctor review"
-          subtitle="Choose patient, date, time, and consultation details in a simple way"
+          subtitle="Choose patient, date, time, and consultation details"
         >
           <Text style={styles.label}>Patient</Text>
           <ScrollView
@@ -235,7 +301,7 @@ export default function TelemedicineScreen() {
                     styles.choiceTextActive,
                   ]}
                 >
-                  Patient #{patient.id}
+                  {getPatientDisplayName(patient)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -244,7 +310,7 @@ export default function TelemedicineScreen() {
           <Text style={styles.label}>Consult date</Text>
           <TextInput
             style={styles.input}
-            placeholder="Date-month-year"
+            placeholder="25-04-2026"
             value={form.consult_date}
             onChangeText={(value) =>
               setForm((prev) => ({ ...prev, consult_date: value }))
@@ -254,7 +320,7 @@ export default function TelemedicineScreen() {
           <Text style={styles.label}>Consult time</Text>
           <TextInput
             style={styles.input}
-            placeholder="Time"
+            placeholder="7:00pm"
             value={form.consult_time}
             onChangeText={(value) =>
               setForm((prev) => ({ ...prev, consult_time: value }))
@@ -322,11 +388,11 @@ export default function TelemedicineScreen() {
       ) : null}
 
       <SectionCard
-        title="Consultation workflow"
+        title={role === 'doctor' ? 'All consultation history' : 'Your consultation history'}
         subtitle={
           role === 'doctor'
-            ? 'Doctor-facing CKD consultation queue'
-            : 'Patient-facing CKD consultation updates'
+            ? 'View all consultations with patient names and CKD overview'
+            : 'View your doctor follow-up history and disease overview'
         }
       >
         {items.length === 0 ? (
@@ -335,15 +401,44 @@ export default function TelemedicineScreen() {
           </Text>
         ) : (
           items.map((item) => (
-            <View key={item.id} style={styles.item}>
-              <Text style={styles.itemTitle}>Consultation #{item.id}</Text>
-              <Text style={styles.body}>Status: {item.status}</Text>
+            <View key={item.id} style={styles.itemCard}>
+              <View style={styles.itemHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemTitle}>
+                    {role === 'doctor'
+                      ? item.patient_name || `Patient #${item.patient_id}`
+                      : item.doctor_name || `Doctor #${item.doctor_id}`}
+                  </Text>
+                  <Text style={styles.itemSub}>
+                    {role === 'doctor'
+                      ? `Doctor: ${item.doctor_name || 'Unknown doctor'}`
+                      : `Patient: ${item.patient_name || 'Unknown patient'}`}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.statusPill,
+                    item.needs_immediate_attention && styles.statusPillUrgent,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      item.needs_immediate_attention && styles.statusPillTextUrgent,
+                    ]}
+                  >
+                    {item.status}
+                  </Text>
+                </View>
+              </View>
+
               <Text style={styles.body}>
                 Time: {new Date(item.appointment_time).toLocaleString()}
               </Text>
-              <Text style={styles.body}>
-                Patient ID {item.patient_id} • Doctor ID {item.doctor_id}
-              </Text>
+              <Text style={styles.body}>Urgency: {item.urgency}</Text>
+
+              {renderHealthOverview(item)}
 
               {item.meeting_link ? (
                 <>
@@ -457,16 +552,77 @@ const styles = StyleSheet.create({
   choiceTextActive: {
     color: '#fff',
   },
-  item: {
-    paddingVertical: 12,
+  itemCard: {
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  itemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    gap: 10,
+  },
   itemTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  itemSub: {
+    color: colors.muted,
+    fontSize: 13,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.softBlue,
+  },
+  statusPillUrgent: {
+    backgroundColor: '#FEE2E2',
+  },
+  statusPillText: {
+    color: colors.accent,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  statusPillTextUrgent: {
+    color: '#B91C1C',
+  },
+  overviewBox: {
+    backgroundColor: colors.softBlue,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  overviewTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metricTile: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  metricLabel: {
+    marginTop: 4,
+    color: colors.muted,
+    fontSize: 12,
   },
   subhead: {
     fontSize: 14,

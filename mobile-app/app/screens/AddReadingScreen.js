@@ -9,6 +9,8 @@ import {
   Alert,
   Switch,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -18,6 +20,43 @@ import {
 } from '../services/readingService';
 import { getMyPatientProfile } from '../services/patientService';
 import { colors, radius, shadows, typography } from '../utils/theme';
+
+function InputField({
+  label,
+  hint,
+  value,
+  onChangeText,
+  keyboardType = 'default',
+  inputMode,
+}) {
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.hint}>{hint}</Text>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        inputMode={inputMode}
+        placeholder={label}
+        placeholderTextColor="#94a3b8"
+        autoCorrect={false}
+        autoCapitalize="none"
+        returnKeyType="done"
+      />
+    </View>
+  );
+}
+
+function ToggleField({ label, value, onValueChange }) {
+  return (
+    <View style={styles.toggleRow}>
+      <Text style={styles.toggleLabel}>{label}</Text>
+      <Switch value={value} onValueChange={onValueChange} />
+    </View>
+  );
+}
 
 export default function AddReadingScreen({ route, navigation }) {
   const [patientId, setPatientId] = useState(route?.params?.patientId ?? null);
@@ -65,6 +104,33 @@ export default function AddReadingScreen({ route, navigation }) {
 
   const setField = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const sanitizeDecimalInput = (value) => {
+    const cleaned = String(value).replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    if (parts.length <= 2) return cleaned;
+    return `${parts[0]}.${parts.slice(1).join('')}`;
+  };
+
+  const sanitizeIntegerInput = (value) => {
+    return String(value).replace(/[^0-9]/g, '');
+  };
+
+  const parseOptionalFloat = (value) => {
+    if (value == null) return null;
+    const cleaned = String(value).trim();
+    if (!cleaned) return null;
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+
+  const parseOptionalInt = (value) => {
+    if (value == null) return null;
+    const cleaned = String(value).trim();
+    if (!cleaned) return null;
+    const parsed = parseInt(cleaned, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
 
   const pickReportImage = async () => {
     try {
@@ -127,19 +193,28 @@ export default function AddReadingScreen({ route, navigation }) {
       setRawExtractText(result?.raw_text || '');
 
       if (extracted.creatinine_value != null) {
-        setField('creatinine_value', String(extracted.creatinine_value));
+        setField(
+          'creatinine_value',
+          sanitizeDecimalInput(String(extracted.creatinine_value))
+        );
       }
       if (extracted.acr != null) {
-        setField('acr', String(extracted.acr));
+        setField('acr', sanitizeDecimalInput(String(extracted.acr)));
       }
       if (extracted.egfr != null) {
-        setField('egfr', String(extracted.egfr));
+        setField('egfr', sanitizeDecimalInput(String(extracted.egfr)));
       }
       if (extracted.systolic_bp != null) {
-        setField('systolic_bp', String(extracted.systolic_bp));
+        setField(
+          'systolic_bp',
+          sanitizeIntegerInput(String(extracted.systolic_bp))
+        );
       }
       if (extracted.diastolic_bp != null) {
-        setField('diastolic_bp', String(extracted.diastolic_bp));
+        setField(
+          'diastolic_bp',
+          sanitizeIntegerInput(String(extracted.diastolic_bp))
+        );
       }
 
       Alert.alert(
@@ -184,14 +259,14 @@ export default function AddReadingScreen({ route, navigation }) {
       }
 
       const payload = {
-        creatinine_value: parseFloat(form.creatinine_value) || 0,
-        acr: parseFloat(form.acr) || 0,
-        egfr: parseFloat(form.egfr) || 0,
-        systolic_bp: parseFloat(form.systolic_bp) || 0,
-        diastolic_bp: parseFloat(form.diastolic_bp) || 0,
-        sensor_value_1: parseFloat(form.sensor_value_1) || 0,
-        sensor_value_2: parseFloat(form.sensor_value_2) || 0,
-        adherence_score: parseFloat(form.adherence_score) || 0,
+        creatinine_value: parseOptionalFloat(form.creatinine_value),
+        acr: parseOptionalFloat(form.acr),
+        egfr: parseOptionalFloat(form.egfr),
+        systolic_bp: parseOptionalInt(form.systolic_bp),
+        diastolic_bp: parseOptionalInt(form.diastolic_bp),
+        sensor_value_1: parseOptionalFloat(form.sensor_value_1),
+        sensor_value_2: parseOptionalFloat(form.sensor_value_2),
+        adherence_score: parseOptionalFloat(form.adherence_score),
         symptom_fatigue: form.fatigue,
         symptom_swelling: form.swelling,
         symptom_low_urine: form.low_urine_output,
@@ -212,34 +287,6 @@ export default function AddReadingScreen({ route, navigation }) {
     }
   };
 
-  const InputField = ({
-    label,
-    hint,
-    value,
-    onChangeText,
-    keyboardType = 'numeric',
-  }) => (
-    <View style={styles.fieldBlock}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.hint}>{hint}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        placeholder={label}
-        placeholderTextColor="#94a3b8"
-      />
-    </View>
-  );
-
-  const ToggleField = ({ label, value, onValueChange }) => (
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onValueChange} />
-    </View>
-  );
-
   const renderForm = () => (
     <>
       <View style={styles.cardBox}>
@@ -249,49 +296,75 @@ export default function AddReadingScreen({ route, navigation }) {
           label="Creatinine (mg/dL)"
           hint="Serum creatinine from renal lab test"
           value={form.creatinine_value}
-          onChangeText={(v) => setField('creatinine_value', v)}
+          onChangeText={(v) =>
+            setField('creatinine_value', sanitizeDecimalInput(v))
+          }
+          keyboardType="numeric"
+          inputMode="decimal"
         />
         <InputField
           label="Urine ACR (mg/g)"
           hint="Albumin-to-creatinine ratio"
           value={form.acr}
-          onChangeText={(v) => setField('acr', v)}
+          onChangeText={(v) => setField('acr', sanitizeDecimalInput(v))}
+          keyboardType="numeric"
+          inputMode="decimal"
         />
         <InputField
           label="eGFR (mL/min/1.73m²)"
           hint="Estimated kidney filtration rate"
           value={form.egfr}
-          onChangeText={(v) => setField('egfr', v)}
+          onChangeText={(v) => setField('egfr', sanitizeDecimalInput(v))}
+          keyboardType="numeric"
+          inputMode="decimal"
         />
         <InputField
           label="Systolic BP (mmHg)"
           hint="Top blood pressure number"
           value={form.systolic_bp}
-          onChangeText={(v) => setField('systolic_bp', v)}
+          onChangeText={(v) => setField('systolic_bp', sanitizeIntegerInput(v))}
+          keyboardType="number-pad"
+          inputMode="numeric"
         />
         <InputField
           label="Diastolic BP (mmHg)"
           hint="Bottom blood pressure number"
           value={form.diastolic_bp}
-          onChangeText={(v) => setField('diastolic_bp', v)}
+          onChangeText={(v) =>
+            setField('diastolic_bp', sanitizeIntegerInput(v))
+          }
+          keyboardType="number-pad"
+          inputMode="numeric"
         />
         <InputField
           label="Sensor Reading 1"
           hint="Primary sensor value from your tested dataset workflow"
           value={form.sensor_value_1}
-          onChangeText={(v) => setField('sensor_value_1', v)}
+          onChangeText={(v) =>
+            setField('sensor_value_1', sanitizeDecimalInput(v))
+          }
+          keyboardType="numeric"
+          inputMode="decimal"
         />
         <InputField
           label="Sensor Reading 2"
           hint="Secondary sensor value from your tested dataset workflow"
           value={form.sensor_value_2}
-          onChangeText={(v) => setField('sensor_value_2', v)}
+          onChangeText={(v) =>
+            setField('sensor_value_2', sanitizeDecimalInput(v))
+          }
+          keyboardType="numeric"
+          inputMode="decimal"
         />
         <InputField
           label="Adherence Score (%)"
           hint="Medication and monitoring adherence"
           value={form.adherence_score}
-          onChangeText={(v) => setField('adherence_score', v)}
+          onChangeText={(v) =>
+            setField('adherence_score', sanitizeDecimalInput(v))
+          }
+          keyboardType="numeric"
+          inputMode="decimal"
         />
       </View>
 
@@ -317,127 +390,140 @@ export default function AddReadingScreen({ route, navigation }) {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.kicker}>CKD Guardian</Text>
-      <Text style={styles.title}>Submit CKD Reading</Text>
-      <Text style={styles.subtitle}>
-        Choose one method to provide the CKD dataset values used for prediction.
-      </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Text style={styles.kicker}>CKD Guardian</Text>
+        <Text style={styles.title}>Submit CKD Reading</Text>
+        <Text style={styles.subtitle}>
+          Choose one method to provide the CKD dataset values used for prediction.
+        </Text>
 
-      {loadingPatient ? (
-        <Text style={styles.infoText}>Loading patient profile...</Text>
-      ) : !patientId ? (
-        <Text style={styles.errorText}>Patient profile could not be loaded.</Text>
-      ) : null}
+        {loadingPatient ? (
+          <Text style={styles.infoText}>Loading patient profile...</Text>
+        ) : !patientId ? (
+          <Text style={styles.errorText}>Patient profile could not be loaded.</Text>
+        ) : null}
 
-      {!inputMode ? (
-        <View style={styles.modeWrap}>
-          <TouchableOpacity
-            style={styles.modeCard}
-            onPress={() => setInputMode('upload')}
-          >
-            <Text style={styles.modeTitle}>Upload Report Image</Text>
-            <Text style={styles.modeText}>
-              Upload a lab report image, extract values, and review them before saving.
-            </Text>
-          </TouchableOpacity>
+        {!inputMode ? (
+          <View style={styles.modeWrap}>
+            <TouchableOpacity
+              style={styles.modeCard}
+              onPress={() => setInputMode('upload')}
+            >
+              <Text style={styles.modeTitle}>Upload Report Image</Text>
+              <Text style={styles.modeText}>
+                Upload a lab report image, extract values, and review them before saving.
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.modeCard}
-            onPress={() => setInputMode('manual')}
-          >
-            <Text style={styles.modeTitle}>Enter Readings Manually</Text>
-            <Text style={styles.modeText}>
-              Type the CKD dataset values directly and continue with manual entry.
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+            <TouchableOpacity
+              style={styles.modeCard}
+              onPress={() => setInputMode('manual')}
+            >
+              <Text style={styles.modeTitle}>Enter Readings Manually</Text>
+              <Text style={styles.modeText}>
+                Type the CKD dataset values directly and continue with manual entry.
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
-      {inputMode === 'upload' ? (
-        <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Report image</Text>
-            <Text style={styles.hintText}>
-              Upload the report, extract CKD values, then review them below.
-            </Text>
+        {inputMode === 'upload' ? (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Report image</Text>
+              <Text style={styles.hintText}>
+                Upload the report, extract CKD values, then review them below.
+              </Text>
 
-            {selectedImageUri ? (
-              <View style={styles.previewBox}>
-                <Image source={{ uri: selectedImageUri }} style={styles.preview} />
-                <View style={styles.previewActions}>
+              {selectedImageUri ? (
+                <View style={styles.previewBox}>
+                  <Image source={{ uri: selectedImageUri }} style={styles.preview} />
+                  <View style={styles.previewActions}>
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={removeReportImage}
+                      disabled={saving || extracting}
+                    >
+                      <Text style={styles.secondaryButtonText}>Remove image</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={pickReportImage}
+                      disabled={saving || extracting}
+                    >
+                      <Text style={styles.secondaryButtonText}>Change image</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={removeReportImage}
+                    style={styles.extractButton}
+                    onPress={handleExtractValues}
                     disabled={saving || extracting}
                   >
-                    <Text style={styles.secondaryButtonText}>Remove image</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={pickReportImage}
-                    disabled={saving || extracting}
-                  >
-                    <Text style={styles.secondaryButtonText}>Change image</Text>
+                    <Text style={styles.extractButtonText}>
+                      {extracting ? 'Extracting...' : 'Extract Values from Report'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
-
+              ) : (
                 <TouchableOpacity
-                  style={styles.extractButton}
-                  onPress={handleExtractValues}
+                  style={styles.uploadButton}
+                  onPress={pickReportImage}
                   disabled={saving || extracting}
                 >
-                  <Text style={styles.extractButtonText}>
-                    {extracting ? 'Extracting...' : 'Extract Values from Report'}
-                  </Text>
+                  <Text style={styles.uploadButtonText}>Upload Report Image</Text>
                 </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={pickReportImage}
-                disabled={saving || extracting}
-              >
-                <Text style={styles.uploadButtonText}>Upload Report Image</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              )}
+            </View>
 
-          {renderForm()}
-        </>
-      ) : null}
+            {renderForm()}
+          </>
+        ) : null}
 
-      {inputMode === 'manual' ? renderForm() : null}
+        {inputMode === 'manual' ? renderForm() : null}
 
-      {inputMode ? (
-        <>
-          <TouchableOpacity
-            style={styles.changeModeLink}
-            onPress={() => {
-              setInputMode(null);
-              setSelectedImageUri('');
-              setUploadedReportPath('');
-              setRawExtractText('');
-              setField('report_image_path', '');
-            }}
-            disabled={saving || extracting}
-          >
-            <Text style={styles.changeModeText}>Change input method</Text>
-          </TouchableOpacity>
+        {inputMode ? (
+          <>
+            <TouchableOpacity
+              style={styles.changeModeLink}
+              onPress={() => {
+                setInputMode(null);
+                setSelectedImageUri('');
+                setUploadedReportPath('');
+                setRawExtractText('');
+                setField('report_image_path', '');
+              }}
+              disabled={saving || extracting}
+            >
+              <Text style={styles.changeModeText}>Change input method</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, (!patientId || saving || extracting) && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={!patientId || saving || extracting}
-          >
-            <Text style={styles.buttonText}>
-              {saving ? 'Saving...' : 'Save CKD Reading'}
-            </Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
-    </ScrollView>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                (!patientId || saving || extracting) && styles.buttonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={!patientId || saving || extracting}
+            >
+              <Text style={styles.buttonText}>
+                {saving ? 'Saving...' : 'Save CKD Reading'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -469,7 +555,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     ...(shadows?.card || {}),
   },
-  cardTitle: { fontSize: typography?.h3 || 18, fontWeight: '800', color: colors.text, marginBottom: 14 },
+  cardTitle: {
+    fontSize: typography?.h3 || 18,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 14,
+  },
   fieldBlock: { marginBottom: 18 },
   label: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
   hint: { fontSize: 13, color: colors.muted, marginBottom: 8 },

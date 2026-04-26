@@ -32,13 +32,37 @@ export default function RegisterScreen({ onAuthSuccess }) {
 
   const handleRegister = async () => {
     try {
+      const cleanName = name.trim();
+      const cleanEmail = email.trim().toLowerCase();
+
+      if (!cleanName || !cleanEmail || !password.trim()) {
+        Alert.alert(
+          'Registration failed',
+          JSON.stringify(error?.response?.data || error?.message || error)
+        );
+        return;
+      }
+
       setLoading(true);
-      const result = await register(name, email, password, role);
+
+      const result = await register(
+        cleanName,
+        cleanEmail,
+        password,
+        role.toLowerCase()
+      );
+
       onAuthSuccess?.(result.user);
     } catch (e) {
+      const detail =
+        e?.response?.data?.detail ||
+        e?.response?.data ||
+        e?.message ||
+        'Please review your details and try again.';
+
       Alert.alert(
         'Registration failed',
-        e?.response?.data?.detail || 'Please review your details and try again.'
+        typeof detail === 'string' ? detail : JSON.stringify(detail)
       );
     } finally {
       setLoading(false);
@@ -63,6 +87,7 @@ export default function RegisterScreen({ onAuthSuccess }) {
         <TextInput
           style={styles.input}
           placeholder="Full name"
+          placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}
         />
@@ -70,6 +95,7 @@ export default function RegisterScreen({ onAuthSuccess }) {
         <TextInput
           style={styles.input}
           placeholder="Email address"
+          placeholderTextColor={colors.muted}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -79,6 +105,7 @@ export default function RegisterScreen({ onAuthSuccess }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -99,7 +126,7 @@ export default function RegisterScreen({ onAuthSuccess }) {
         </View>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleRegister}
           disabled={loading}
         >
@@ -157,6 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    color: colors.text,
   },
   sectionLabel: {
     marginTop: 4,
@@ -193,6 +221,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 14,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',

@@ -19,13 +19,27 @@ export default function LoginScreen({ navigation, onAuthSuccess }) {
 
   const handleLogin = async () => {
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password;
+
+      if (!cleanEmail || !cleanPassword) {
+        Alert.alert('Missing details', 'Please enter email and password.');
+        return;
+      }
+
       setLoading(true);
-      const result = await login(email, password);
+      const result = await login(cleanEmail, cleanPassword);
       onAuthSuccess?.(result.user);
     } catch (e) {
+      const detail =
+        e?.response?.data?.detail ||
+        e?.response?.data ||
+        e?.message ||
+        'Please check your credentials and try again.';
+
       Alert.alert(
         'Login failed',
-        e?.response?.data?.detail || 'Please check your credentials and try again.'
+        typeof detail === 'string' ? detail : JSON.stringify(detail)
       );
     } finally {
       setLoading(false);
@@ -53,6 +67,7 @@ export default function LoginScreen({ navigation, onAuthSuccess }) {
         <TextInput
           style={styles.input}
           placeholder="Email address"
+          placeholderTextColor={colors.muted}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -62,12 +77,17 @@ export default function LoginScreen({ navigation, onAuthSuccess }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor={colors.muted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
           <Text style={styles.buttonText}>
             {loading ? 'Signing in...' : 'Sign in'}
           </Text>
@@ -125,12 +145,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    color: colors.text,
   },
   button: {
     backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 14,
     marginTop: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
