@@ -5,8 +5,12 @@ from typing import Optional
 
 class TeleconsultationOut(BaseModel):
     id: int
+
     patient_id: int
+    patient_name: Optional[str] = None
+
     doctor_id: int
+    doctor_name: Optional[str] = None
 
     appointment_time: datetime
     meeting_link: Optional[str] = None
@@ -20,11 +24,6 @@ class TeleconsultationOut(BaseModel):
     prescription_note: Optional[str] = None
     patient_instruction: Optional[str] = None
 
-    # ✅ NAMES (FIX)
-    patient_name: Optional[str] = None
-    doctor_name: Optional[str] = None
-
-    # ✅ HEALTH OVERVIEW (FIX)
     latest_risk_score: Optional[float] = None
     latest_risk_level: Optional[str] = None
     trend_status: Optional[str] = None
@@ -33,8 +32,8 @@ class TeleconsultationOut(BaseModel):
     latest_acr: Optional[float] = None
     latest_egfr: Optional[float] = None
 
-    latest_systolic_bp: Optional[int] = None
-    latest_diastolic_bp: Optional[int] = None
+    latest_systolic_bp: Optional[float] = None
+    latest_diastolic_bp: Optional[float] = None
 
     class Config:
         from_attributes = True

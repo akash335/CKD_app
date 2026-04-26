@@ -80,57 +80,75 @@ def send_patient_consultation_email(
 ):
     html = f"""
     <html>
-      <body style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-        <h2>CKD Guardian Consultation Scheduled</h2>
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family: Arial, sans-serif;">
+    
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center" style="padding: 30px 0;">
+            
+            <table width="600" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
 
-        <p>Hello {patient_name or 'Patient'},</p>
+              <!-- HEADER -->
+              <tr>
+                <td style="background:#2563EB; color:white; padding:20px; font-size:20px; font-weight:bold;">
+                  CKD Guardian
+                </td>
+              </tr>
 
-        <p>Your CKD consultation has been scheduled.</p>
+              <!-- BODY -->
+              <tr>
+                <td style="padding:25px; color:#111827;">
 
-        <p><strong>Appointment time:</strong> {appointment_time}</p>
-        <p><strong>Meeting link:</strong> {meeting_link or 'Will be shared soon'}</p>
-        <p><strong>Doctor advice:</strong> {doctor_advice or 'No advice added yet'}</p>
-        <p><strong>Prescription note:</strong> {prescription_note or 'No prescription note added yet'}</p>
+                  <h2 style="margin-top:0;">Consultation Scheduled</h2>
 
-        <p><strong>What you should do now:</strong> {patient_instruction or 'Please check the app for updates.'}</p>
+                  <p>Hello <strong>{patient_name or 'Patient'}</strong>,</p>
 
-        <p><strong>Important:</strong> If you cannot attend the meeting immediately, please take the prescribed medicines as advised by your doctor.</p>
+                  <p>Your CKD consultation has been successfully scheduled.</p>
 
-        <p>Open CKD Guardian for the latest consultation details.</p>
-      </body>
+                  <div style="background:#f9fafb; padding:15px; border-radius:8px; margin:20px 0;">
+                    <p><strong>📅 Appointment:</strong> {appointment_time}</p>
+                    <p><strong>🔗 Meeting Link:</strong> {meeting_link or 'Will be shared soon'}</p>
+                  </div>
+
+                  <p><strong>🩺 Doctor Advice:</strong><br>{doctor_advice or 'No advice added yet'}</p>
+
+                  <p style="margin-top:15px;"><strong>💊 Prescription:</strong><br>{prescription_note or 'No prescription provided'}</p>
+
+                  <p style="margin-top:15px;"><strong>📌 What you should do:</strong><br>{patient_instruction or 'Follow instructions in app.'}</p>
+
+                  <div style="margin-top:25px; padding:15px; background:#FEF3C7; border-radius:8px;">
+                    <strong>⚠ Important:</strong><br>
+                    If you cannot attend, follow prescribed medication immediately.
+                  </div>
+
+                  <a href="{meeting_link or '#'}" 
+                  style="display:inline-block; margin-top:20px; padding:12px 20px; background:#2563EB; color:white; text-decoration:none; border-radius:6px;">
+                  Join Meeting
+                  </a>
+
+                </td>
+              </tr>
+
+              <!-- FOOTER -->
+              <tr>
+                <td style="padding:15px; text-align:center; font-size:12px; color:#6b7280;">
+                  © CKD Guardian • Stay Healthy
+                </td>
+              </tr>
+
+            </table>
+
+          </td>
+        </tr>
+      </table>
+
+    </body>
     </html>
     """
+
     _send_email(
         to_email=patient_email,
         to_name=patient_name,
         subject="CKD Guardian Consultation Scheduled",
-        html_content=html,
-    )
-
-
-def send_doctor_urgent_alert_email(
-    doctor_email: str,
-    doctor_name: str,
-    patient_id: int,
-    risk_score: float | int | None,
-    summary: str | None,
-):
-    html = f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #0f172a;">
-        <h2>Urgent CKD Case Requires Review</h2>
-        <p>Hello Dr. {doctor_name or ''},</p>
-        <p>A high-priority CKD case needs attention.</p>
-        <p><strong>Patient ID:</strong> {patient_id}</p>
-        <p><strong>Risk score:</strong> {risk_score if risk_score is not None else 'N/A'}</p>
-        <p><strong>Summary:</strong> {summary or 'See doctor dashboard for details.'}</p>
-        <p>Please review the case in CKD Guardian as soon as possible.</p>
-      </body>
-    </html>
-    """
-    _send_email(
-        to_email=doctor_email,
-        to_name=doctor_name,
-        subject="Urgent CKD Case Requires Review",
         html_content=html,
     )

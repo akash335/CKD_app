@@ -19,7 +19,7 @@ from .deps import get_current_user
 router = APIRouter(prefix="/teleconsultations", tags=["teleconsultations"])
 
 
-def build_teleconsultation_response(db: Session, item: Teleconsultation) -> TeleconsultationOut:
+def build_teleconsultation_response(db: Session, item: Teleconsultation):
     patient = db.query(Patient).filter(Patient.id == item.patient_id).first()
     patient_user = None
     if patient and patient.user_id:
@@ -44,9 +44,19 @@ def build_teleconsultation_response(db: Session, item: Teleconsultation) -> Tele
     return TeleconsultationOut(
         id=item.id,
         patient_id=item.patient_id,
-        patient_name=patient_user.name if patient_user else None,
+        patient_name=(
+            patient_user.name
+            if patient_user and patient_user.name
+            else f"Patient {item.patient_id}"
+        ),
+
         doctor_id=item.doctor_id,
-        doctor_name=doctor_user.name if doctor_user else None,
+        doctor_name=(
+            doctor_user.name
+            if doctor_user and doctor_user.name
+            else f"Doctor {item.doctor_id}"
+        ),
+
         appointment_time=item.appointment_time,
         meeting_link=item.meeting_link,
         summary=item.summary,
@@ -56,9 +66,11 @@ def build_teleconsultation_response(db: Session, item: Teleconsultation) -> Tele
         doctor_advice=item.doctor_advice,
         prescription_note=item.prescription_note,
         patient_instruction=item.patient_instruction,
+
         latest_risk_score=latest_prediction.risk_score if latest_prediction else None,
         latest_risk_level=latest_prediction.risk_level if latest_prediction else None,
         trend_status=latest_prediction.trend_status if latest_prediction else None,
+
         latest_creatinine=latest_reading.creatinine_value if latest_reading else None,
         latest_acr=latest_reading.acr if latest_reading else None,
         latest_egfr=latest_reading.egfr if latest_reading else None,

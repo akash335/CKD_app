@@ -1,63 +1,109 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import api from '../services/api';
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+
+import { getUser } from '../services/storage';
+import {
+    getTeleconsultationsForDoctor,
+    getTeleconsultationsForPatient,
+} from '../services/telemedicineService';
+import { getMyPatientProfile } from '../services/patientService';
 
 export default function HistoryScreen() {
     const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadHistory();
+        load();
     }, []);
 
-    const loadHistory = async () => {
+    const load = async () => {
         try {
-            const res = await api.get('/teleconsultations'); // adjust if needed
-            setData(res.data);
+            const user = await getUser();
+
+            let res = [];
+
+            if (user.role === 'doctor') {
+                res = await getTeleconsultationsForDoctor(user.id);
+            } else {
+                const patient = await getMyPatientProfile();
+                res = await getTeleconsultationsForPatient(patient.id);
+            }
+
+            setData(res || []);
         } catch (e) {
-            console.log("HISTORY ERROR:", e?.response?.data || e.message);
+            console.log('ERROR:', e?.response?.data || e.message);
+        } finally {
+            setLoading(false);
         }
     };
 
+    if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+
+    if (!data.length)
+        return (
+            <View style={styles.center}>
+                <Text>No history available</Text>
+            </View>
+        );
+
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.title}>Consultation History</Text>
+            {data.map((item) => (
+                <View key={item.id} style={styles.card}>
+                    <Text style={styles.title}>{item.patient_name}</Text>
 
-            {data.length === 0 ? (
-                <Text style={styles.empty}>No consultations yet</Text>
-            ) : (
-                data.map((item) => (
-                    <View key={item.id} style={styles.card}>
-                        <Text style={styles.name}>
-                            {item.patient_name || `Patient #${item.patient_id}`}
-                        </Text>
+                    <Text>Doctor: {item.doctor_name}</Text>
+                    <Text>
+                        {new Date(item.appointment_time).toLocaleString()}
+                    </Text>
 
-                        <Text>Doctor: {item.doctor_name || 'Unknown'}</Text>
-                        <Text>Status: {item.status}</Text>
-                        <Text>Urgency: {item.urgency}</Text>
+                    <Text>Urgency: {item.urgency}</Text>
 
-                        <Text style={styles.summary}>
-                            {item.summary || 'No summary'}
-                        </Text>
-                    </View>
-                ))
-            )}
+                    {item.summary && <Text>Summary: {item.summary}</Text>}
+                    {item.doctor_advice && <Text>Advice: {item.doctor_advice}</Text>}
+                    {item.prescription_note && (
+                        <Text>Prescription: {item.prescription_note}</Text>
+                    )}
+
+                    {/* CKD DATA */}
+                    {item.latest_risk_score && (
+                        <Text>Risk: {item.latest_risk_score}</Text>
+                    )}
+                    {item.latest_egfr && <Text>eGFR: {item.latest_egfr}</Text>}
+                    {item.latest_creatinine && (
+                        <Text>Creatinine: {item.latest_creatinine}</Text>
+                    )}
+                </View>
+            ))}
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16 },
-    title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
-    empty: { textAlign: 'center', marginTop: 50, color: '#888' },
+    container: { padding: 16 },
 
     card: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 12,
+        padding: 16,
         marginBottom: 12,
-        elevation: 2,
+        borderRadius: 12,
+        backgroundColor: '#f5f5f5',
     },
 
-    name: { fontWeight: 'bold', fontSize: 16 },
-    summary: { marginTop: 8, color: '#444' },
+    title: {
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 6,
+    },
+
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
