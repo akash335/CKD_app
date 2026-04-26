@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
-  Alert,
+  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,403 +14,464 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
+import RiskCard from '../components/RiskCard';
+import TrendChart from '../components/TrendChart';
 import SectionCard from '../components/SectionCard';
-import StatPill from '../components/StatPill';
+
 import {
-  archiveRecentPatientOverview,
-  listPastOverviewPatients,
-  listRecentOverviewPatients,
+  createPatientProfile,
+  getMyPatientProfile,
 } from '../services/patientService';
-import { getLatestPrediction } from '../services/predictionService';
-import { getAlerts } from '../services/alertService';
-import { colors } from '../utils/theme';
+import {
+  getLatestPrediction,
+  getPredictions,
+} from '../services/predictionService';
+import { getLatestReading } from '../services/readingService';
+import { getToken } from '../services/storage';
+import { useAppTheme } from '../utils/theme';
 
-export default function DoctorDashboardScreen() {
-  const [mode, setMode] = useState('recent');
-  const [patients, setPatients] = useState([]);
-  const [predictionsMap, setPredictionsMap] = useState({});
-  const [alertsMap, setAlertsMap] = useState({});
+export default function DashboardScreen({ navigation, onSessionExpired }) {
+  const { colors, radius, shadows } = useAppTheme();
+  const styles = useMemo(
+    () => createStyles(colors, radius, shadows),
+    [colors, radius, shadows]
+  );
+
+  const [patient, setPatient] = useState(null);
+  const [latestPrediction, setLatestPrediction] = useState(null);
+  const [predictions, setPredictions] = useState([]);
+  const [latestReading, setLatestReading] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [clearing, setClearing] = useState(false);
 
-  const load = async (selectedMode = mode) => {
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const sectionAnim = useRef(new Animated.Value(0)).current;
+  const buttonAnim = useRef(new Animated.Value(0)).current;
+
+  const bootstrap = async () => {
     setRefreshing(true);
-
     try {
-      const roster =
-        selectedMode === 'past'
-          ? await listPastOverviewPatients()
-          : await listRecentOverviewPatients();
+      const token = await getToken();
 
-      const safeRoster = Array.isArray(roster) ? roster : [];
-      setPatients(safeRoster);
+      if (!token) {
+        if (onSessionExpired) {
+          await onSessionExpired();
+        }
+        return;
+      }
 
-      const predictionEntries = await Promise.all(
-        safeRoster.map(async (patient) => {
-          try {
-            return [patient.id, await getLatestPrediction(patient.id)];
-          } catch {
-            return [patient.id, null];
+      let profile;
+
+      try {
+        profile = await getMyPatientProfile();
+      } catch (error) {
+        const status = error?.response?.status;
+
+        if (status === 404) {
+          profile = await createPatientProfile({
+            age: 35,
+            sex: 'male',
+            weight: 70,
+            diabetes: false,
+            hypertension: true,
+            family_history: false,
+          });
+        } else if (status === 401) {
+          if (onSessionExpired) {
+            await onSessionExpired();
           }
-        })
-      );
+          return;
+        } else {
+          throw error;
+        }
+      }
 
-      const alertEntries = await Promise.all(
-        safeRoster.map(async (patient) => {
-          try {
-            return [patient.id, await getAlerts(patient.id)];
-          } catch {
-            return [patient.id, []];
-          }
-        })
-      );
+      setPatient(profile);
 
-      setPredictionsMap(Object.fromEntries(predictionEntries));
-      setAlertsMap(Object.fromEntries(alertEntries));
-    } catch (e) {
-      Alert.alert(
-        'Unable to load dashboard',
-        e?.response?.data?.detail || JSON.stringify(e?.response?.data || e.message)
-      );
+      try {
+        const latestPred = await getLatestPrediction(profile.id);
+        setLatestPrediction(latestPred);
+      } catch {
+        setLatestPrediction(null);
+      }
+
+      try {
+        const predictionHistory = await getPredictions(profile.id);
+        setPredictions(Array.isArray(predictionHistory) ? predictionHistory : []);
+      } catch {
+        setPredictions([]);
+      }
+
+      try {
+        const latestRead = await getLatestReading(profile.id);
+        setLatestReading(latestRead);
+      } catch {
+        setLatestReading(null);
+      }
+    } catch (error) {
+      console.log('DASHBOARD ERROR:', error?.response?.data || error.message);
     } finally {
       setRefreshing(false);
     }
   };
 
-  const switchMode = async (nextMode) => {
-    setMode(nextMode);
-    await load(nextMode);
-  };
-
-  const clearRecentOverview = async () => {
-    try {
-      const confirmed =
-        typeof globalThis !== 'undefined' && typeof globalThis.confirm === 'function'
-          ? globalThis.confirm('Move recent patient overview to Past?')
-          : true;
-
-      if (!confirmed) return;
-
-      setClearing(true);
-
-      const response = await archiveRecentPatientOverview();
-
-      Alert.alert(
-        'Moved to Past',
-        `Recent patient overview moved to Past. Archived: ${response?.archived ?? 0}`
-      );
-
-      await load('recent');
-    } catch (e) {
-      Alert.alert(
-        'Unable to clear overview',
-        e?.response?.data?.detail || JSON.stringify(e?.response?.data || e.message)
-      );
-    } finally {
-      setClearing(false);
-    }
-  };
-
   useEffect(() => {
-    load('recent');
+    bootstrap();
+
+    Animated.stagger(120, [
+      Animated.parallel([
+        Animated.timing(heroAnim, {
+          toValue: 1,
+          duration: 550,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(sectionAnim, {
+          toValue: 1,
+          duration: 550,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(buttonAnim, {
+          toValue: 1,
+          duration: 550,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
   }, []);
 
-  const summary = useMemo(() => {
-    const predictions = Object.values(predictionsMap).filter(Boolean);
-    const openAlerts = Object.values(alertsMap)
-      .flat()
-      .filter((item) => !item.is_resolved);
+  useFocusEffect(
+    useCallback(() => {
+      bootstrap();
+    }, [])
+  );
 
-    return {
-      patientCount: patients.length,
-      highRisk: predictions.filter((p) => p.risk_level === 'High').length,
-      moderateRisk: predictions.filter((p) => p.risk_level === 'Moderate').length,
-      openAlerts: openAlerts.length,
-    };
-  }, [patients, predictionsMap, alertsMap]);
+  const heroTranslateY = heroAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, 0],
+  });
+
+  const sectionTranslateY = sectionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, 0],
+  });
+
+  const buttonTranslateY = buttonAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, 0],
+  });
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ padding: 16, paddingBottom: 36 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(mode)} />}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={bootstrap} />
+      }
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>CKD Guardian</Text>
-          <Text style={styles.title}>CKD Guardian Doctor Desk</Text>
-        </View>
+      <Animated.View
+        style={[
+          styles.heroShell,
+          {
+            opacity: heroAnim,
+            transform: [{ translateY: heroTranslateY }],
+          },
+        ]}
+      >
+        <View style={styles.heroGlowOne} />
+        <View style={styles.heroGlowTwo} />
 
-        {mode === 'recent' ? (
-          <TouchableOpacity
-            style={[styles.clearButton, clearing && styles.clearButtonDisabled]}
-            onPress={clearRecentOverview}
-            disabled={clearing}
-          >
-            <Text style={styles.clearButtonText}>
-              {clearing ? 'Clearing...' : 'Clear recent overview'}
+        <Text style={styles.appName}>CKD Guardian</Text>
+        <Text style={styles.title}>CKD Risk Overview</Text>
+        <Text style={styles.subtitle}>
+          ML-based CKD detection, renal risk monitoring, alerts, and doctor follow-up.
+        </Text>
+
+        <View style={styles.heroChipRow}>
+          <View style={styles.heroChip}>
+            <Text style={styles.heroChipText}>
+              {patient ? `Patient ID #${patient.id}` : 'Kidney monitoring'}
             </Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      <Text style={styles.subtitle}>
-        View recent patient overview, or open Past to review cleared patient overview data.
-      </Text>
-
-      <View style={styles.segmentWrap}>
-        <TouchableOpacity
-          style={[styles.segmentButton, mode === 'recent' && styles.segmentButtonActive]}
-          onPress={() => switchMode('recent')}
-        >
-          <Text style={[styles.segmentText, mode === 'recent' && styles.segmentTextActive]}>
-            Recent
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.segmentButton, mode === 'past' && styles.segmentButtonActive]}
-          onPress={() => switchMode('past')}
-        >
-          <Text style={[styles.segmentText, mode === 'past' && styles.segmentTextActive]}>
-            Past
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <SectionCard
-        title={mode === 'past' ? 'Past overview summary' : 'Live monitoring summary'}
-        subtitle={
-          mode === 'past'
-            ? 'Patient overview data moved from Recent appears here.'
-            : 'Aggregated across recent CKD patient records.'
-        }
-      >
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryTile}>
-            <Text style={styles.summaryValue}>{summary.patientCount}</Text>
-            <Text style={styles.summaryLabel}>Patients</Text>
           </View>
-
-          <View style={styles.summaryTile}>
-            <Text style={styles.summaryValue}>{summary.highRisk}</Text>
-            <Text style={styles.summaryLabel}>High risk</Text>
-          </View>
-
-          <View style={styles.summaryTile}>
-            <Text style={styles.summaryValue}>{summary.openAlerts}</Text>
-            <Text style={styles.summaryLabel}>Open alerts</Text>
+          <View style={styles.heroChip}>
+            <Text style={styles.heroChipText}>Live risk tracking</Text>
           </View>
         </View>
-      </SectionCard>
+      </Animated.View>
 
-      <SectionCard
-        title={mode === 'past' ? 'Past patient overview' : 'Recent patient roster'}
-        subtitle={
-          mode === 'past'
-            ? 'Cleared patient overview records are still visible here.'
-            : 'Latest ML-based CKD interpretation for each recent patient.'
-        }
+      <Animated.View
+        style={{
+          opacity: sectionAnim,
+          transform: [{ translateY: sectionTranslateY }],
+        }}
       >
-        {patients.length === 0 ? (
-          <Text style={styles.empty}>
-            {mode === 'past'
-              ? 'No past patient overview yet.'
-              : 'No recent patient records yet.'}
-          </Text>
-        ) : (
-          patients.map((patient) => {
-            const prediction = predictionsMap[patient.id];
-            const openAlerts = (alertsMap[patient.id] || []).filter(
-              (item) => !item.is_resolved
-            ).length;
+        <RiskCard prediction={latestPrediction} />
+      </Animated.View>
 
-            const tone = !prediction
-              ? 'neutral'
-              : prediction.risk_level === 'High'
-                ? 'danger'
-                : prediction.risk_level === 'Moderate'
-                  ? 'warning'
-                  : 'success';
+      <Animated.View
+        style={[
+          styles.actionRow,
+          {
+            opacity: buttonAnim,
+            transform: [{ translateY: buttonTranslateY }],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.actionPrimary}
+          onPress={() =>
+            navigation?.navigate('Readings', { patientId: patient?.id })
+          }
+          activeOpacity={0.9}
+        >
+          <Text style={styles.actionPrimaryTop}>🧪</Text>
+          <Text style={styles.actionPrimaryText}>Submit CKD Reading</Text>
+        </TouchableOpacity>
 
-            const patientName =
-              patient.user_name ||
-              patient.name ||
-              patient.patient_name ||
-              `Patient #${patient.id}`;
+        <TouchableOpacity
+          style={styles.actionSecondary}
+          onPress={() =>
+            navigation?.navigate('Alerts', { patientId: patient?.id })
+          }
+          activeOpacity={0.9}
+        >
+          <Text style={styles.actionSecondaryTop}>⚠</Text>
+          <Text style={styles.actionSecondaryText}>View CKD Alerts</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
-            return (
-              <View key={patient.id} style={styles.patientCard}>
-                <View style={styles.patientHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.patientName}>{patientName}</Text>
-                    <Text style={styles.patientMeta}>
-                      Age {patient.age ?? '--'} • {patient.sex || 'Unknown sex'} •
-                      Weight {patient.weight ?? '--'} kg
-                    </Text>
-
-                    {mode === 'past' && patient.overview_archived_at ? (
-                      <Text style={styles.archivedText}>
-                        Moved to Past: {new Date(patient.overview_archived_at).toLocaleString()}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <StatPill
-                    label={prediction?.risk_level || 'No prediction'}
-                    tone={tone}
-                  />
-                </View>
-
-                <Text style={styles.patientSummary}>
-                  {prediction
-                    ? `Risk ${Math.round(prediction.risk_score)}% • Trend ${prediction.trend_status} • Confidence ${Math.round((prediction.model_confidence || 0) * 100)}%`
-                    : 'Awaiting first CKD reading'}
+      <Animated.View
+        style={{
+          opacity: sectionAnim,
+          transform: [{ translateY: sectionTranslateY }],
+        }}
+      >
+        <SectionCard
+          title="Latest kidney markers"
+          subtitle="Most recent CKD-related lab and pressure values"
+        >
+          {latestReading ? (
+            <View style={styles.metricGrid}>
+              <View style={styles.metricTile}>
+                <Text style={styles.metricValue}>
+                  {latestReading.creatinine_value ?? '--'}
                 </Text>
-
-                <Text style={styles.patientMeta}>Open alerts: {openAlerts}</Text>
+                <Text style={styles.metricLabel}>Creatinine</Text>
               </View>
-            );
-          })
-        )}
-      </SectionCard>
+
+              <View style={styles.metricTile}>
+                <Text style={styles.metricValue}>
+                  {latestReading.acr ?? '--'}
+                </Text>
+                <Text style={styles.metricLabel}>Urine ACR</Text>
+              </View>
+
+              <View style={styles.metricTile}>
+                <Text style={styles.metricValue}>
+                  {latestReading.egfr ?? '--'}
+                </Text>
+                <Text style={styles.metricLabel}>eGFR</Text>
+              </View>
+
+              <View style={styles.metricTile}>
+                <Text style={styles.metricValue}>
+                  {latestReading.systolic_bp ?? '--'}/
+                  {latestReading.diastolic_bp ?? '--'}
+                </Text>
+                <Text style={styles.metricLabel}>Blood pressure</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.empty}>No kidney reading has been submitted yet.</Text>
+          )}
+        </SectionCard>
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          opacity: sectionAnim,
+          transform: [{ translateY: sectionTranslateY }],
+        }}
+      >
+        <TrendChart predictions={predictions} />
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          opacity: sectionAnim,
+          transform: [{ translateY: sectionTranslateY }],
+        }}
+      >
+        <SectionCard
+          title="What CKD Guardian does"
+          subtitle="Simple kidney-focused workflow"
+        >
+          <Text style={styles.pathItem}>
+            1. Captures kidney-focused biomarker readings.
+          </Text>
+          <Text style={styles.pathItem}>
+            2. Runs ML-based risk scoring for CKD severity and trend direction.
+          </Text>
+          <Text style={styles.pathItem}>
+            3. Surfaces CKD warning flags for abnormal values.
+          </Text>
+          <Text style={styles.pathItem}>
+            4. Prepares follow-up for doctor consultation and treatment planning.
+          </Text>
+        </SectionCard>
+      </Animated.View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-
-  kicker: {
-    color: colors.accent,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: colors.text,
-  },
-
-  subtitle: {
-    color: colors.muted,
-    marginTop: 8,
-    marginBottom: 16,
-    lineHeight: 21,
-  },
-
-  clearButton: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    marginTop: 4,
-  },
-
-  clearButtonDisabled: {
-    opacity: 0.6,
-  },
-
-  clearButtonText: {
-    color: '#B91C1C',
-    fontWeight: '900',
-    fontSize: 13,
-  },
-
-  segmentWrap: {
-    flexDirection: 'row',
-    backgroundColor: '#EAF1FF',
-    borderRadius: 999,
-    padding: 5,
-    marginBottom: 16,
-    gap: 6,
-  },
-
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
-    alignItems: 'center',
-  },
-
-  segmentButtonActive: {
-    backgroundColor: '#2563EB',
-  },
-
-  segmentText: {
-    color: '#64748B',
-    fontWeight: '900',
-  },
-
-  segmentTextActive: {
-    color: '#FFFFFF',
-  },
-
-  summaryRow: { flexDirection: 'row', gap: 10 },
-
-  summaryTile: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-  },
-
-  summaryValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-  },
-
-  summaryLabel: {
-    marginTop: 4,
-    color: colors.muted,
-  },
-
-  patientCard: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-
-  patientHeader: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-
-  patientName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-
-  patientMeta: {
-    color: colors.muted,
-    marginTop: 4,
-  },
-
-  archivedText: {
-    color: '#2563EB',
-    marginTop: 5,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-
-  patientSummary: {
-    marginTop: 10,
-    color: colors.text,
-    lineHeight: 21,
-  },
-
-  empty: {
-    color: colors.muted,
-  },
-});
+function createStyles(colors, radius, shadows) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 16,
+      paddingBottom: 36,
+    },
+    heroShell: {
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      padding: 20,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.card,
+    },
+    heroGlowOne: {
+      position: 'absolute',
+      width: 170,
+      height: 170,
+      borderRadius: 999,
+      backgroundColor: colors.glow,
+      top: -35,
+      right: -30,
+    },
+    heroGlowTwo: {
+      position: 'absolute',
+      width: 120,
+      height: 120,
+      borderRadius: 999,
+      backgroundColor: colors.overlay,
+      bottom: -24,
+      left: -18,
+    },
+    appName: {
+      color: colors.accent,
+      fontWeight: '800',
+      marginBottom: 8,
+      letterSpacing: 0.4,
+    },
+    title: {
+      fontSize: 30,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    subtitle: {
+      color: colors.muted,
+      marginTop: 10,
+      lineHeight: 22,
+      marginBottom: 16,
+      maxWidth: '92%',
+    },
+    heroChipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    heroChip: {
+      backgroundColor: colors.primarySoft,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: radius.pill,
+    },
+    heroChipText: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 16,
+    },
+    actionPrimary: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      padding: 16,
+      borderRadius: 18,
+      ...shadows.soft,
+    },
+    actionPrimaryTop: {
+      fontSize: 20,
+      marginBottom: 10,
+    },
+    actionPrimaryText: {
+      color: '#fff',
+      fontWeight: '800',
+      textAlign: 'left',
+      lineHeight: 20,
+    },
+    actionSecondary: {
+      flex: 1,
+      backgroundColor: colors.surfaceAlt,
+      padding: 16,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.soft,
+    },
+    actionSecondaryTop: {
+      fontSize: 20,
+      marginBottom: 10,
+    },
+    actionSecondaryText: {
+      color: colors.accent,
+      fontWeight: '800',
+      textAlign: 'left',
+      lineHeight: 20,
+    },
+    metricGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    metricTile: {
+      width: '48%',
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    metricValue: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    metricLabel: {
+      marginTop: 6,
+      color: colors.muted,
+    },
+    pathItem: {
+      color: colors.muted,
+      lineHeight: 22,
+      marginBottom: 8,
+    },
+    empty: {
+      color: colors.muted,
+    },
+  });
+}
