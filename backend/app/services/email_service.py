@@ -1,7 +1,9 @@
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
 from ..config import settings
+
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 BREVO_API_KEY = settings.BREVO_API_KEY
@@ -81,24 +83,19 @@ def send_patient_consultation_email(
     html = f"""
     <html>
     <body style="margin:0; padding:0; background:#f3f4f6; font-family: Arial, sans-serif;">
-    
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td align="center" style="padding: 30px 0;">
-            
             <table width="600" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
 
-              <!-- HEADER -->
               <tr>
                 <td style="background:#2563EB; color:white; padding:20px; font-size:20px; font-weight:bold;">
                   CKD Guardian
                 </td>
               </tr>
 
-              <!-- BODY -->
               <tr>
                 <td style="padding:25px; color:#111827;">
-
                   <h2 style="margin-top:0;">Consultation Scheduled</h2>
 
                   <p>Hello <strong>{patient_name or 'Patient'}</strong>,</p>
@@ -121,15 +118,13 @@ def send_patient_consultation_email(
                     If you cannot attend, follow prescribed medication immediately.
                   </div>
 
-                  <a href="{meeting_link or '#'}" 
-                  style="display:inline-block; margin-top:20px; padding:12px 20px; background:#2563EB; color:white; text-decoration:none; border-radius:6px;">
-                  Join Meeting
+                  <a href="{meeting_link or '#'}"
+                    style="display:inline-block; margin-top:20px; padding:12px 20px; background:#2563EB; color:white; text-decoration:none; border-radius:6px;">
+                    Join Meeting
                   </a>
-
                 </td>
               </tr>
 
-              <!-- FOOTER -->
               <tr>
                 <td style="padding:15px; text-align:center; font-size:12px; color:#6b7280;">
                   © CKD Guardian • Stay Healthy
@@ -137,11 +132,9 @@ def send_patient_consultation_email(
               </tr>
 
             </table>
-
           </td>
         </tr>
       </table>
-
     </body>
     </html>
     """
@@ -150,5 +143,69 @@ def send_patient_consultation_email(
         to_email=patient_email,
         to_name=patient_name,
         subject="CKD Guardian Consultation Scheduled",
+        html_content=html,
+    )
+
+
+def send_doctor_urgent_alert_email(
+    doctor_email: str,
+    doctor_name: str,
+    patient_id: int,
+    risk_score: float | int | None,
+    summary: str | None,
+):
+    html = f"""
+    <html>
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family: Arial, sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center" style="padding: 30px 0;">
+            <table width="600" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+
+              <tr>
+                <td style="background:#DC2626; color:white; padding:20px; font-size:20px; font-weight:bold;">
+                  CKD Guardian Urgent Alert
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:25px; color:#111827;">
+                  <h2 style="margin-top:0;">Urgent CKD Case Requires Review</h2>
+
+                  <p>Hello <strong>Dr. {doctor_name or 'Doctor'}</strong>,</p>
+
+                  <p>A high-priority CKD case needs your attention.</p>
+
+                  <div style="background:#FEF2F2; padding:15px; border-radius:8px; margin:20px 0; border:1px solid #FECACA;">
+                    <p><strong>Patient ID:</strong> {patient_id}</p>
+                    <p><strong>Risk score:</strong> {risk_score if risk_score is not None else 'N/A'}</p>
+                    <p><strong>Summary:</strong> {summary or 'Please review the patient dashboard for details.'}</p>
+                  </div>
+
+                  <div style="margin-top:25px; padding:15px; background:#FEF3C7; border-radius:8px;">
+                    <strong>Important:</strong><br>
+                    Please review this patient in CKD Guardian as soon as possible.
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:15px; text-align:center; font-size:12px; color:#6b7280;">
+                  © CKD Guardian • Doctor Alert
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    _send_email(
+        to_email=doctor_email,
+        to_name=doctor_name,
+        subject="Urgent CKD Case Requires Review",
         html_content=html,
     )

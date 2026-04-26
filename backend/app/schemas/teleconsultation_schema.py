@@ -1,6 +1,32 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
+
+
+class TeleconsultationCreate(BaseModel):
+    patient_id: int
+    doctor_id: int
+    appointment_time: datetime
+    meeting_link: Optional[str] = None
+    summary: Optional[str] = None
+    status: str = Field(default="scheduled")
+    urgency: str = Field(default="routine")
+    needs_immediate_attention: bool = False
+    doctor_advice: Optional[str] = None
+    prescription_note: Optional[str] = None
+    patient_instruction: Optional[str] = None
+
+
+class TeleconsultationUpdate(BaseModel):
+    appointment_time: Optional[datetime] = None
+    meeting_link: Optional[str] = None
+    summary: Optional[str] = None
+    status: Optional[str] = None
+    urgency: Optional[str] = None
+    needs_immediate_attention: Optional[bool] = None
+    doctor_advice: Optional[str] = None
+    prescription_note: Optional[str] = None
+    patient_instruction: Optional[str] = None
 
 
 class TeleconsultationOut(BaseModel):
