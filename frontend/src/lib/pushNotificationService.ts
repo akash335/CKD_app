@@ -8,7 +8,7 @@
 
 import { Capacitor } from "@capacitor/core";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://ckd-guardian-backend.onrender.com";
 
 let _isInitialized = false;
 

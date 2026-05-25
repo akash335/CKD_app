@@ -4,8 +4,8 @@
 
 import type { ChatConversation, ChatMessage } from "@/types/chat";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const LOCAL_FALLBACK_URL = "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://ckd-guardian-backend.onrender.com";
+const LOCAL_FALLBACK_URL = "https://ckd-guardian-backend.onrender.com";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 

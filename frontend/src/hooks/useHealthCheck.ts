@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { checkHealth, HealthCheckResponse } from "@/lib/api-client";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://ckd-guardian-backend.onrender.com";
 
 interface UseHealthCheckReturn {
   data: HealthCheckResponse | null;

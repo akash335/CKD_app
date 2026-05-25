@@ -52,7 +52,7 @@ export function BackendStatus() {
             <span className="text-xs font-medium text-red-400">Connection Failed</span>
           </div>
           <p className="text-[11px] theme-text-muted leading-relaxed">
-            Cannot reach the backend at <code className="text-[10px] px-1 py-0.5 rounded theme-text-secondary" style={{ background: 'var(--bg-elevated)' }}>localhost:8000</code>
+            Cannot reach the backend at <code className="text-[10px] px-1 py-0.5 rounded theme-text-secondary" style={{ background: 'var(--bg-elevated)' }}>ckd-guardian-backend.onrender.com</code>
           </p>
         </div>
       ) : data ? (
