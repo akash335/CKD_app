@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ckdguardian-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /ping
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard (contains credentials)
+      - key: SECRET_KEY
+        sync: false
+      - key: INTERNAL_API_KEY
+        value: ckdguardian-secure-key-2026
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        value: ckdguardianofficial@gmail.com
+      - key: BREVO_SENDER_NAME
+        value: CKD Guardian Alerts
+      - key: FIREBASE_SERVICE_ACCOUNT_KEY
+        sync: false          # Set as Secret File in Render dashboard
+      - key: DEBUG
+        value: "false"

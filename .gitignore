@@ -1,0 +1,113 @@
+# ==============================================================================
+# CKD Guardian — Full-Stack Next.js + FastAPI + ML + Mobile .gitignore
+# ==============================================================================
+
+# ─── OS / SYSTEM ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.AppleDouble
+.LSOverride
+
+# ─── ENVIRONMENT & SECRETS ───────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+*.cert
+secrets.json
+firebase-key.json
+google-services.json
+
+# ─── NODE.JS / NEXT.JS / FRONTEND ────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+mobileapp/node_modules/
+.next/
+frontend/.next/
+out/
+dist/
+build/
+.vercel/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# ─── PYTHON / FASTAPI BACKEND ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+backend/venv/
+backend/.venv/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ─── MACHINE LEARNING / DATA ─────────────────────────────────────────────
+.ipynb_checkpoints/
+*.dat
+*.hdf5
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# Ignore general CSV/PKL files
+*.csv
+*.pkl
+
+# Keep required deployed ML files
+!backend/ml/data/ckd_training_data.csv
+!backend/ml/models/ckd_risk_model.pkl
+!backend/ml/models/ckd_model_metadata.json
+
+# ─── LOGS / DATABASES ────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.sqlite
+*.sqlite3
+*.db
+backend/app.db
+backend/ckd_database.db
+backend/renalwatch.db
+
+# ─── MOBILE / CAPACITOR / ANDROID / IOS ──────────────────────────────────
+mobileapp/www/
+mobileapp/android/app/build/
+mobileapp/ios/App/public/
+*.apk
+*.aar
+*.jar
+.gradle/
+android/app/build/
+android/.gradle/
+
+# ─── IDE / EDITORS ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ─── AI / AGENTS ─────────────────────────────────────────────────────────
+.agent/
+.codex/
+.antigravityignore
+.github/skills/

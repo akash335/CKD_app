@@ -1,0 +1,19 @@
+name: Keep Backend Awake
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  # Allows you to trigger the workflow manually from the Actions tab
+  workflow_dispatch: 
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Health Endpoint
+        # --fail: Causes curl to fail (exit non-zero) on server errors like 5xx
+        # --max-time 10: Prevents the action from hanging endlessly if the server freezes
+        # --silent: Keeps the action logs clean
+        run: |
+          curl --fail --silent --max-time 10 https://ckdguardian.onrender.com/ping

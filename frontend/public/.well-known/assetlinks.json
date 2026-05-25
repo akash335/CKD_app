@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ckdguardian.mobileapp",
+      "sha256_cert_fingerprints": [
+        "A3:33:D6:62:CE:4D:CD:44:6C:26:9A:DF:FB:2D:89:5E:E2:A8:B8:2A:34:E8:93:6A:CF:89:B9:29:95:A9:FB:6B"
+      ]
+    }
+  }
+]

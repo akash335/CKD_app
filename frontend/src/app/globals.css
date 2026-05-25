@@ -1,0 +1,287 @@
+@import "tailwindcss";
+
+/* ── Dark theme (default) ──────────────────────────────────────────── */
+:root {
+  --bg-primary: #0c1021;
+  --bg-secondary: #0e1325;
+  --bg-card: rgba(255, 255, 255, 0.028);
+  --bg-card-hover: rgba(255, 255, 255, 0.05);
+  --bg-input: rgba(255, 255, 255, 0.025);
+  --bg-header: rgba(12, 16, 33, 0.82);
+  --bg-elevated: rgba(255, 255, 255, 0.035);
+  --bg-elevated-hover: rgba(255, 255, 255, 0.07);
+
+  --border-primary: rgba(255, 255, 255, 0.055);
+  --border-hover: rgba(255, 255, 255, 0.11);
+  --border-input: rgba(255, 255, 255, 0.07);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dimmed: #64748b;
+  --text-faint: #475569;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.15), 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-header: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
+  --grid-dot: rgba(255, 255, 255, 0.025);
+
+  --foreground: #cbd5e1;
+  --background: #0c1021;
+
+  /* Semantic */
+  --shimmer: rgba(255, 255, 255, 0.04);
+  --accent-primary: #8b5cf6; /* violet-500 */
+}
+
+/* ── Light theme ───────────────────────────────────────────────────── */
+.light {
+  --bg-primary: #f4f6fa;
+  --bg-secondary: #ebeef4;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-card-hover: rgba(255, 255, 255, 0.88);
+  --bg-input: rgba(255, 255, 255, 0.6);
+  --bg-header: rgba(244, 246, 250, 0.82);
+  --bg-elevated: rgba(0, 0, 0, 0.025);
+  --bg-elevated-hover: rgba(0, 0, 0, 0.05);
+
+  --border-primary: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --border-input: rgba(0, 0, 0, 0.09);
+
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --text-dimmed: #64748b;
+  --text-faint: #94a3b8;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
+  --shadow-header: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+  --grid-dot: rgba(0, 0, 0, 0.03);
+
+  --foreground: #1e293b;
+  --background: #f4f6fa;
+
+  --shimmer: rgba(0, 0, 0, 0.04);
+  --accent-primary: #7c3aed; /* violet-600 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --animate-in: animate-in 0.5s ease-out;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(0.75rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-in-from-top-2 {
+  from { transform: translateY(-0.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-in {
+  animation: fade-in 0.35s ease-out, slide-in-from-bottom 0.4s ease-out;
+}
+
+.fade-in {
+  animation: fade-in 0.35s ease-out;
+}
+
+.slide-in-from-bottom-4 {
+  animation: slide-in-from-bottom 0.4s ease-out;
+}
+
+.slide-in-from-bottom-2 {
+  animation: slide-in-from-bottom 0.3s ease-out;
+}
+
+.slide-in-from-top-2 {
+  animation: slide-in-from-top-2 0.3s ease-out;
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ── Background pattern ─────────────────────────────────────────────── */
+
+.bg-grid-pattern {
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
+/* ── Theme-aware utility classes ─────────────────────────────────────── */
+
+.theme-bg { background: var(--bg-primary); }
+.theme-bg-secondary { background: var(--bg-secondary); }
+.theme-bg-card { background: var(--bg-card); }
+.theme-bg-header { background: var(--bg-header); }
+.theme-bg-input { background: var(--bg-input); }
+.theme-bg-elevated { background: var(--bg-elevated); }
+
+.theme-border { border-color: var(--border-primary); }
+.theme-border-hover { border-color: var(--border-hover); }
+.theme-border-input { border-color: var(--border-input); }
+
+.theme-text { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-text-muted { color: var(--text-muted); }
+.theme-text-dimmed { color: var(--text-dimmed); }
+.theme-text-faint { color: var(--text-faint); }
+
+.theme-shadow-card { box-shadow: var(--shadow-card); }
+.theme-shadow-card-hover { box-shadow: var(--shadow-card-hover); }
+
+/* ── Smooth transitions ──────────────────────────────────────────────── */
+
+.theme-transition {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* ── Number input spinners removal ───────────────────────────────────── */
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ── Google Translate Overrides ──────────────────────────────────────── */
+/* Completely hides all Google Translate injected UI elements, banners,  */
+/* and logos to keep the app looking fully native.                       */
+
+iframe.goog-te-banner-frame,
+iframe.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-gadget,
+.goog-te-gadget-icon,
+.goog-te-gadget-simple,
+.goog-te-spinner-pos,
+.goog-te-spinner-animation,
+.goog-logo-link,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover,
+#google_translate_element,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc,
+.VIpgJd-ZVi9od-ORHb-OEVmcd {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  pointer-events: none !important;
+}
+
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+/* ── Selection color ─────────────────────────────────────────────────── */
+
+::selection {
+  background: rgba(56, 189, 248, 0.2);
+  color: inherit;
+}
+
+/* ── Mobile Responsive Typography ───────────────────────────────────── */
+/* Scales up tiny text for readability on small screens.                */
+/* Desktop (≥640px) is UNTOUCHED — these rules only fire on mobile.    */
+
+@media (max-width: 639px) {
+
+  /* ── Tiny fixed-pixel sizes → readable minimums ──────────────────── */
+  /* text-[8px] */
+  [style*="font-size:8px"],
+  .text-\[8px\] { font-size: 11px !important; }
+
+  /* text-[9px] */
+  [style*="font-size:9px"],
+  .text-\[9px\] { font-size: 12px !important; }
+
+  /* text-[10px] */
+  [style*="font-size:10px"],
+  .text-\[10px\] { font-size: 13px !important; }
+
+  /* text-[11px] */
+  [style*="font-size:11px"],
+  .text-\[11px\] { font-size: 13px !important; }
+
+  /* ── Tailwind named sizes — subtle bump ──────────────────────────── */
+  /* text-xs (12px) → 13px */
+  .text-xs { font-size: 13px !important; line-height: 1.35; }
+
+  /* text-sm (14px) → 15px */
+  .text-sm { font-size: 15px !important; line-height: 1.4; }
+
+  /* ── Headings — slightly larger on mobile ────────────────────────── */
+  h1, .text-xl { font-size: clamp(1.2rem, 5vw, 1.25rem) !important; }
+  h2, .text-lg { font-size: clamp(1.05rem, 4.5vw, 1.125rem) !important; }
+  h3, .text-base { font-size: clamp(0.95rem, 4vw, 1rem) !important; }
+
+  /* ── Form labels and inputs — readable sizing ────────────────────── */
+  label {
+    font-size: 13px;
+  }
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* ── Cards and dashboard body text ───────────────────────────────── */
+  .theme-text-muted {
+    font-size: max(13px, inherit);
+    line-height: 1.45;
+  }
+  .theme-text-dimmed {
+    font-size: max(12px, inherit);
+    line-height: 1.4;
+  }
+}
