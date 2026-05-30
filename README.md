@@ -2,7 +2,7 @@
 
 **AI-Powered Chronic Kidney Disease Detection, Monitoring & Telemedicine Platform**
 
-🌍 **Live Website:** https://ckd-app-blond.vercel.app  
+🌍 **Live Website:** https://ckd-guardian.vercel.app/
 ⚙️ **Backend API:** https://ckd-guardian-backend.onrender.com  
 📘 **API Docs:** https://ckd-guardian-backend.onrender.com/docs
 
