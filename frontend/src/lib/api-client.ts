@@ -4,13 +4,21 @@
 
 import type { ChatConversation, ChatMessage } from "@/types/chat";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://ckd-guardian-backend.onrender.com";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://ckd-guardian-backend.onrender.com";
+
+const INTERNAL_API_KEY =
+  process.env.NEXT_PUBLIC_INTERNAL_API_KEY ?? "ckdguardian-secure-key-2026";
+
 const LOCAL_FALLBACK_URL = "https://ckd-guardian-backend.onrender.com";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface HealthCheckResponse {
-  status: string; service: string; version: string; timestamp: string;
+  status: string;
+  service: string;
+  version: string;
+  timestamp: string;
   components: { database: string; ml_models: string };
 }
 
@@ -18,22 +26,51 @@ export type RiskLevel = "low" | "moderate" | "high" | "critical";
 export type InputMode = "hospital" | "urea" | "medical-report";
 
 export interface PredictionResponse {
-  risk_level: RiskLevel; confidence: number; health_score: number;
-  explanation: string; contributing_factors: string[]; input_mode: string;
+  risk_level: RiskLevel;
+  confidence: number;
+  health_score: number;
+  explanation: string;
+  contributing_factors: string[];
+  input_mode: string;
 }
 
-export interface HospitalInput { creatinine: number; urea: number; egfr: number; hemoglobin: number; age?: number; }
-export interface UreaInput { urea: number; }
-export interface ExtractedReportData { creatinine: number; urea: number; egfr: number; hemoglobin: number; age?: number; }
+export interface HospitalInput {
+  creatinine: number;
+  urea: number;
+  egfr: number;
+  hemoglobin: number;
+  age?: number;
+}
+
+export interface UreaInput {
+  urea: number;
+}
+
+export interface ExtractedReportData {
+  creatinine: number;
+  urea: number;
+  egfr: number;
+  hemoglobin: number;
+  age?: number;
+}
 
 export interface RecordData {
-  id: string; input_mode: string; input_values: Record<string, number>;
-  risk_level: string; confidence: number; health_score: number;
-  explanation: string; contributing_factors: string[]; created_at: string;
+  id: string;
+  input_mode: string;
+  input_values: Record<string, number>;
+  risk_level: string;
+  confidence: number;
+  health_score: number;
+  explanation: string;
+  contributing_factors: string[];
+  created_at: string;
   user_id: string;
 }
 
-export interface RecordsListResponse { records: RecordData[]; total: number; }
+export interface RecordsListResponse {
+  records: RecordData[];
+  total: number;
+}
 
 export interface UserData {
   id: string;
@@ -50,7 +87,10 @@ export interface UserData {
   created_at?: string;
 }
 
-export interface ApiError { message: string; status: number; }
+export interface ApiError {
+  message: string;
+  status: number;
+}
 
 // ─── Core Fetcher ──────────────────────────────────────────────────────────
 
@@ -59,20 +99,23 @@ const shouldTryLocalFallback = () =>
   window.location.hostname === "localhost" &&
   BASE_URL !== LOCAL_FALLBACK_URL;
 
+const jsonHeaders = (extraHeaders?: HeadersInit): HeadersInit => ({
+  "Content-Type": "application/json",
+  "X-API-Key": INTERNAL_API_KEY,
+  ...(extraHeaders || {}),
+});
+
 async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
   baseUrl: string = BASE_URL,
 ): Promise<T> {
   let res: Response;
+
   try {
     res = await fetch(`${baseUrl}${endpoint}`, {
-      headers: { 
-        "Content-Type": "application/json", 
-        "X-API-Key": "ckdguardian-secure-key-2026",
-        ...options?.headers 
-      },
       ...options,
+      headers: jsonHeaders(options?.headers),
     });
   } catch {
     throw {
@@ -83,9 +126,20 @@ async function apiFetch<T>(
 
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`;
-    try { const body = await res.json(); if (body.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail); } catch {}
+
+    try {
+      const body = await res.json();
+      if (body.detail) {
+        detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : JSON.stringify(body.detail);
+      }
+    } catch {}
+
     throw { message: detail, status: res.status } as ApiError;
   }
+
   return res.json();
 }
 
@@ -93,16 +147,30 @@ async function apiFetch<T>(
  * Tries to wake the Render backend by polling /ping up to `maxAttempts` times.
  * Returns true if the backend responds within the timeout, false otherwise.
  */
-export async function wakeBackend(maxAttempts = 8, intervalMs = 3000): Promise<boolean> {
+export async function wakeBackend(
+  maxAttempts = 8,
+  intervalMs = 3000,
+): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const res = await fetch(`${BASE_URL}/ping`, { method: "GET", signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${BASE_URL}/ping`, {
+        method: "GET",
+        headers: {
+          "X-API-Key": INTERNAL_API_KEY,
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+
       if (res.ok) return true;
     } catch {
       // backend still sleeping
     }
-    if (i < maxAttempts - 1) await new Promise((r) => setTimeout(r, intervalMs));
+
+    if (i < maxAttempts - 1) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
   }
+
   return false;
 }
 
@@ -110,24 +178,29 @@ export async function wakeBackend(maxAttempts = 8, intervalMs = 3000): Promise<b
  * Wrapper: attempts apiFetch, and if the backend is unreachable (status 0),
  * tries to wake it and retries once.
  */
-async function apiFetchWithWake<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function apiFetchWithWake<T>(
+  endpoint: string,
+  options?: RequestInit,
+): Promise<T> {
   try {
     return await apiFetch<T>(endpoint, options);
   } catch (err: any) {
     if (err?.status === 0) {
-      // Backend asleep — try to wake it
       const awake = await wakeBackend();
+
       if (awake) {
         return await apiFetch<T>(endpoint, options);
       }
+
       if (shouldTryLocalFallback()) {
         try {
           return await apiFetch<T>(endpoint, options, LOCAL_FALLBACK_URL);
         } catch {
-          // Fallback failed; rethrow original error
+          // fallback failed; rethrow original error
         }
       }
     }
+
     throw err;
   }
 }
@@ -137,53 +210,96 @@ async function apiFetchWithWake<T>(endpoint: string, options?: RequestInit): Pro
 export const checkHealth = () => apiFetch<HealthCheckResponse>("/health");
 
 export const predictHospital = (data: HospitalInput) =>
-  apiFetch<PredictionResponse>("/api/hospital/predict", { method: "POST", body: JSON.stringify(data) });
+  apiFetch<PredictionResponse>("/api/hospital/predict", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const predictUrea = (data: UreaInput) =>
-  apiFetch<PredictionResponse>("/api/urea/predict", { method: "POST", body: JSON.stringify(data) });
+  apiFetch<PredictionResponse>("/api/urea/predict", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-export const extractMedicalReport = async (file: File): Promise<ExtractedReportData> => {
+export const extractMedicalReport = async (
+  file: File,
+): Promise<ExtractedReportData> => {
   const formData = new FormData();
   formData.append("file", file);
-  
+
   const response = await fetch(`${BASE_URL}/api/hospital/extract-report`, {
     method: "POST",
+    headers: {
+      "X-API-Key": INTERNAL_API_KEY,
+    },
     body: formData,
   });
 
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
-    try { const body = await response.json(); if (body.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail); } catch {}
+
+    try {
+      const body = await response.json();
+      if (body.detail) {
+        detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : JSON.stringify(body.detail);
+      }
+    } catch {}
+
     throw { message: detail, status: response.status } as ApiError;
   }
-  
+
   return response.json();
 };
 
-export const saveRecord = (data: Omit<RecordData, "id" | "created_at"> & { input_values: Record<string, number> }) =>
-  apiFetch<RecordData>("/api/records", { method: "POST", body: JSON.stringify(data) });
+export const saveRecord = (
+  data: Omit<RecordData, "id" | "created_at"> & {
+    input_values: Record<string, number>;
+  },
+) =>
+  apiFetch<RecordData>("/api/records", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const fetchRecords = (userId?: string) =>
-  apiFetch<RecordsListResponse>(userId ? `/api/records?user_id=${userId}` : "/api/records");
+  apiFetch<RecordsListResponse>(
+    userId ? `/api/records?user_id=${userId}` : "/api/records",
+  );
 
-export const fetchRecord = (id: string) => apiFetch<RecordData>(`/api/records/${id}`);
+export const fetchRecord = (id: string) =>
+  apiFetch<RecordData>(`/api/records/${id}`);
 
-export const deleteRecord = (id: string) => apiFetch<{ success: boolean }>(`/api/records/${id}`, { method: "DELETE" });
+export const deleteRecord = (id: string) =>
+  apiFetch<{ success: boolean }>(`/api/records/${id}`, {
+    method: "DELETE",
+  });
 
 export const fetchInsights = (userId?: string) =>
-  apiFetch<InsightData[]>(userId ? `/api/records/insights?user_id=${userId}` : "/api/records/insights");
+  apiFetch<InsightData[]>(
+    userId ? `/api/records/insights?user_id=${userId}` : "/api/records/insights",
+  );
 
 // ─── Patients (Doctor view) ───────────────────────────────────────────────
 
 export interface PatientSummary {
-  user_id: string; display_name: string; record_count: number;
-  age?: number; gender?: string;
-  latest_risk_level: string; latest_health_score: number;
-  latest_confidence: number; last_updated: string;
+  user_id: string;
+  display_name: string;
+  record_count: number;
+  age?: number;
+  gender?: string;
+  latest_risk_level: string;
+  latest_health_score: number;
+  latest_confidence: number;
+  last_updated: string;
 }
 
-export const fetchPatients = (doctorId?: string) => 
-  apiFetch<PatientSummary[]>(doctorId ? `/api/records/patients?doctor_id=${doctorId}` : "/api/records/patients");
+export const fetchPatients = (doctorId?: string) =>
+  apiFetch<PatientSummary[]>(
+    doctorId ? `/api/records/patients?doctor_id=${doctorId}` : "/api/records/patients",
+  );
 
 // ─── Requests (Doctor-Patient Linking) ─────────────────────────────────────
 
@@ -252,7 +368,10 @@ export interface MedicationEntry {
   updatedAt: string;
 }
 
-export type MedicationEntryCreateInput = Omit<MedicationEntry, "id" | "userId" | "createdAt" | "updatedAt">;
+export type MedicationEntryCreateInput = Omit<
+  MedicationEntry,
+  "id" | "userId" | "createdAt" | "updatedAt"
+>;
 
 export interface MedicationMealTimes {
   breakfast: string;
@@ -320,14 +439,18 @@ interface MedicationMealTimesServer {
   updated_at: string;
 }
 
-const toMedicationInteractionServer = (interaction: MedicationInteraction): MedicationInteractionServer => ({
+const toMedicationInteractionServer = (
+  interaction: MedicationInteraction,
+): MedicationInteractionServer => ({
   severe: interaction.severe,
   moderate: interaction.moderate,
   none: interaction.none,
   checked_at: interaction.checkedAt,
 });
 
-const fromMedicationEntryServer = (payload: MedicationEntryServer): MedicationEntry => ({
+const fromMedicationEntryServer = (
+  payload: MedicationEntryServer,
+): MedicationEntry => ({
   id: payload.id,
   userId: payload.user_id,
   name: payload.name,
@@ -356,7 +479,9 @@ const fromMedicationEntryServer = (payload: MedicationEntryServer): MedicationEn
   updatedAt: payload.updated_at,
 });
 
-const toMedicationEntryCreateServer = (payload: MedicationEntryCreateInput): MedicationEntryCreateServer => ({
+const toMedicationEntryCreateServer = (
+  payload: MedicationEntryCreateInput,
+): MedicationEntryCreateServer => ({
   name: payload.name,
   prescribing_doctor: payload.prescribingDoctor,
   start_date: payload.startDate,
@@ -376,7 +501,9 @@ const toMedicationEntryCreateServer = (payload: MedicationEntryCreateInput): Med
   override_log_at: payload.overrideLogAt,
 });
 
-const fromMedicationMealTimesServer = (payload: MedicationMealTimesServer): MedicationMealTimes => ({
+const fromMedicationMealTimesServer = (
+  payload: MedicationMealTimesServer,
+): MedicationMealTimes => ({
   breakfast: payload.breakfast,
   lunch: payload.lunch,
   dinner: payload.dinner,
@@ -385,8 +512,8 @@ const fromMedicationMealTimesServer = (payload: MedicationMealTimesServer): Medi
 
 export const createConnectionRequest = (patientId: string, username: string) =>
   apiFetch<ConnectionRequest>(`/api/requests?patient_id=${patientId}`, {
-    method: "POST", 
-    body: JSON.stringify({ username: username }) 
+    method: "POST",
+    body: JSON.stringify({ username }),
   });
 
 export const sendPatientRequest = createConnectionRequest;
@@ -398,73 +525,118 @@ export const fetchPatientRequests = (patientId: string) =>
   apiFetch<ConnectionRequest[]>(`/api/requests/patient/${patientId}`);
 
 export const acceptRequest = (requestId: string, doctorId: string) =>
-  apiFetch<ConnectionRequest>(`/api/requests/${requestId}/accept?doctor_id=${doctorId}`, { method: "POST" });
+  apiFetch<ConnectionRequest>(
+    `/api/requests/${requestId}/accept?doctor_id=${doctorId}`,
+    { method: "POST" },
+  );
 
 export const rejectRequest = (requestId: string, doctorId: string) =>
-  apiFetch<ConnectionRequest>(`/api/requests/${requestId}/reject?doctor_id=${doctorId}`, { method: "POST" });
+  apiFetch<ConnectionRequest>(
+    `/api/requests/${requestId}/reject?doctor_id=${doctorId}`,
+    { method: "POST" },
+  );
 
 export const unlinkPatient = (patientId: string, doctorId: string) =>
-  apiFetch<ActionResponse>(`/api/requests/unlink?patient_id=${patientId}&doctor_id=${doctorId}`, { method: "DELETE" });
+  apiFetch<ActionResponse>(
+    `/api/requests/unlink?patient_id=${patientId}&doctor_id=${doctorId}`,
+    { method: "DELETE" },
+  );
 
 export const deleteRequest = (requestId: string, patientId: string) =>
-  apiFetch<ActionResponse>(`/api/requests/${requestId}?patient_id=${patientId}`, { method: "DELETE" });
+  apiFetch<ActionResponse>(`/api/requests/${requestId}?patient_id=${patientId}`, {
+    method: "DELETE",
+  });
 
 // ─── Medications ───────────────────────────────────────────────────────────
 
 export const fetchMedicationEntries = (userId: string) =>
-  apiFetch<MedicationEntryServer[]>(`/api/medications?user_id=${encodeURIComponent(userId)}`)
-    .then((items) => items.map(fromMedicationEntryServer));
+  apiFetch<MedicationEntryServer[]>(
+    `/api/medications?user_id=${encodeURIComponent(userId)}`,
+  ).then((items) => items.map(fromMedicationEntryServer));
 
-export const createMedicationEntry = (userId: string, payload: MedicationEntryCreateInput) =>
-  apiFetch<MedicationEntryServer>(`/api/medications?user_id=${encodeURIComponent(userId)}`, {
-    method: "POST",
-    body: JSON.stringify(toMedicationEntryCreateServer(payload)),
-  }).then(fromMedicationEntryServer);
+export const createMedicationEntry = (
+  userId: string,
+  payload: MedicationEntryCreateInput,
+) =>
+  apiFetch<MedicationEntryServer>(
+    `/api/medications?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(toMedicationEntryCreateServer(payload)),
+    },
+  ).then(fromMedicationEntryServer);
 
 export const deleteMedicationEntry = (userId: string, medicationId: string) =>
-  apiFetch<ActionResponse>(`/api/medications/${medicationId}?user_id=${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  });
+  apiFetch<ActionResponse>(
+    `/api/medications/${medicationId}?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 
 export const updateMedicationEntry = (
   userId: string,
   medicationId: string,
   payload: MedicationEntryCreateInput,
 ) =>
-  apiFetch<MedicationEntryServer>(`/api/medications/${medicationId}?user_id=${encodeURIComponent(userId)}`, {
-    method: "PUT",
-    body: JSON.stringify(toMedicationEntryCreateServer(payload)),
-  }).then(fromMedicationEntryServer);
+  apiFetch<MedicationEntryServer>(
+    `/api/medications/${medicationId}?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(toMedicationEntryCreateServer(payload)),
+    },
+  ).then(fromMedicationEntryServer);
 
 export const fetchMedicationMealTimes = (userId: string) =>
-  apiFetch<MedicationMealTimesServer>(`/api/medications/preferences?user_id=${encodeURIComponent(userId)}`)
-    .then(fromMedicationMealTimesServer);
+  apiFetch<MedicationMealTimesServer>(
+    `/api/medications/preferences?user_id=${encodeURIComponent(userId)}`,
+  ).then(fromMedicationMealTimesServer);
 
-export const saveMedicationMealTimes = (userId: string, payload: MedicationMealTimes) =>
-  apiFetch<MedicationMealTimesServer>(`/api/medications/preferences?user_id=${encodeURIComponent(userId)}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      breakfast: payload.breakfast,
-      lunch: payload.lunch,
-      dinner: payload.dinner,
-    }),
-  }).then(fromMedicationMealTimesServer);
+export const saveMedicationMealTimes = (
+  userId: string,
+  payload: MedicationMealTimes,
+) =>
+  apiFetch<MedicationMealTimesServer>(
+    `/api/medications/preferences?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        breakfast: payload.breakfast,
+        lunch: payload.lunch,
+        dinner: payload.dinner,
+      }),
+    },
+  ).then(fromMedicationMealTimesServer);
 
 // ─── Messaging ─────────────────────────────────────────────────────────────
 
 export const fetchConversations = (userId: string) =>
-  apiFetch<ChatConversation[]>(`/conversations?user_id=${encodeURIComponent(userId)}`);
+  apiFetch<ChatConversation[]>(
+    `/conversations?user_id=${encodeURIComponent(userId)}`,
+  );
 
 export const fetchChatMessages = (conversationId: string, userId: string) =>
-  apiFetch<ChatMessage[]>(`/messages/${conversationId}?user_id=${encodeURIComponent(userId)}`);
+  apiFetch<ChatMessage[]>(
+    `/messages/${conversationId}?user_id=${encodeURIComponent(userId)}`,
+  );
 
-export const sendChatMessage = (data: { sender_id: string; receiver_id: string; message_text: string }) =>
-  apiFetch<ChatMessage>("/messages/send", { method: "POST", body: JSON.stringify(data) });
+export const sendChatMessage = (data: {
+  sender_id: string;
+  receiver_id: string;
+  message_text: string;
+}) =>
+  apiFetch<ChatMessage>("/messages/send", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const deleteChatMessage = (messageId: string, userId: string) =>
-  apiFetch<DeleteMessageResponse>(`/messages/${messageId}?user_id=${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  });
+  apiFetch<DeleteMessageResponse>(
+    `/messages/${messageId}?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 
 export const getChatWebSocketUrl = (conversationId: string, userId: string) => {
   const wsBaseUrl = BASE_URL.replace(/\/$/, "").replace(/^http/, "ws");
@@ -474,60 +646,127 @@ export const getChatWebSocketUrl = (conversationId: string, userId: string) => {
 // ─── Intelligence ──────────────────────────────────────────────────────────
 
 export interface AlertData {
-  id: string; severity: string; title: string; message: string;
-  metric?: string; action?: string;
+  id: string;
+  severity: string;
+  title: string;
+  message: string;
+  metric?: string;
+  action?: string;
 }
 
 export interface RecommendationData {
-  id: string; category: string; title: string; description: string;
-  priority: string; icon: string;
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  priority: string;
+  icon: string;
 }
 
 export interface IntelligenceReport {
-  alerts: AlertData[]; recommendations: RecommendationData[];
-  condition_summary: string; trend_label: string;
-  risk_level: string; data_points: number;
+  alerts: AlertData[];
+  recommendations: RecommendationData[];
+  condition_summary: string;
+  trend_label: string;
+  risk_level: string;
+  data_points: number;
 }
 
 export const fetchIntelligenceReport = (userId?: string) =>
-  apiFetch<IntelligenceReport>(userId ? `/api/intelligence/report?user_id=${userId}` : "/api/intelligence/report");
+  apiFetch<IntelligenceReport>(
+    userId ? `/api/intelligence/report?user_id=${userId}` : "/api/intelligence/report",
+  );
 
 // ─── Users ─────────────────────────────────────────────────────────────────
 
-export const syncUser = (data: { id: string; email: string; name?: string; image?: string; role?: string }) =>
-  apiFetch<UserData>("/api/users/sync", { method: "POST", body: JSON.stringify(data) });
+export const syncUser = (data: {
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
+  role?: string;
+}) =>
+  apiFetch<UserData>("/api/users/sync", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-export const fetchUser = (userId: string) => 
+export const fetchUser = (userId: string) =>
   apiFetch<UserData>(`/api/users/${userId}`);
 
-export const updateProfile = (userId: string, data: { name?: string, age?: number, gender?: string, role?: string, username?: string, next_checkup?: string }) =>
-  apiFetch<UserData>(`/api/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) });
+export const updateProfile = (
+  userId: string,
+  data: {
+    name?: string;
+    age?: number;
+    gender?: string;
+    role?: string;
+    username?: string;
+    next_checkup?: string;
+  },
+) =>
+  apiFetch<UserData>(`/api/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 
-export const updateUser = (userId: string, data: { name?: string; role?: string }) =>
-  apiFetch<UserData>(`/api/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) });
+export const updateUser = (
+  userId: string,
+  data: { name?: string; role?: string },
+) =>
+  apiFetch<UserData>(`/api/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 
-export const fetchDoctors = () => 
-  apiFetch<UserData[]>("/api/users/doctors");
+export const fetchDoctors = () => apiFetch<UserData[]>("/api/users/doctors");
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
 export interface AuthResponse {
-  id: string; name: string; email: string; role: string;
-  image?: string; auth_provider: string; has_password: boolean;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  image?: string;
+  auth_provider: string;
+  has_password: boolean;
   message: string;
 }
 
-export const registerUser = (data: { name: string; email: string; password: string }) =>
-  apiFetch<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(data) });
+export const registerUser = (data: {
+  name: string;
+  email: string;
+  password: string;
+}) =>
+  apiFetch<AuthResponse>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 export const loginUser = (data: { email: string; password: string }) =>
-  apiFetch<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(data) });
+  apiFetch<AuthResponse>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-export const changePassword = (userId: string, data: { current_password: string; new_password: string }) =>
-  apiFetch<{ message: string }>(`/api/auth/change-password?user_id=${userId}`, { method: "POST", body: JSON.stringify(data) });
+export const changePassword = (
+  userId: string,
+  data: { current_password: string; new_password: string },
+) =>
+  apiFetch<{ message: string }>(
+    `/api/auth/change-password?user_id=${userId}`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 
 export interface InsightData {
-  metric: string; trend: string; message: string; severity: string;
+  metric: string;
+  trend: string;
+  message: string;
+  severity: string;
 }
 
 // ─── Alerts ────────────────────────────────────────────────────────────────
@@ -551,33 +790,56 @@ export interface AlertSettings {
 }
 
 export const fetchAlertContacts = (userId: string) =>
-  apiFetchWithWake<AlertContact[]>(`/api/profile/alert-contacts/view/${userId}`);
+  apiFetchWithWake<AlertContact[]>(
+    `/api/profile/alert-contacts/view/${userId}`,
+  );
 
-export const addAlertContact = (userId: string, data: { name: string; email: string; relation: string }) =>
-  apiFetch<AlertContact>(`/api/profile/alert-contacts?user_id=${encodeURIComponent(userId)}`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+export const addAlertContact = (
+  userId: string,
+  data: { name: string; email: string; relation: string },
+) =>
+  apiFetch<AlertContact>(
+    `/api/profile/alert-contacts?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 
 export const deleteAlertContact = (userId: string, contactId: string) =>
-  apiFetch<{ message: string }>(`/api/profile/alert-contacts/${contactId}?user_id=${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  });
+  apiFetch<{ message: string }>(
+    `/api/profile/alert-contacts/${contactId}?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 
 export const fetchAlertSettings = (userId: string) =>
   apiFetch<AlertSettings>(`/api/profile/alert-settings/view/${userId}`);
 
-export const updateAlertSettings = (userId: string, data: { enable_email_alerts?: boolean; cooldown_hours?: number }) =>
-  apiFetch<AlertSettings>(`/api/profile/alert-settings?user_id=${encodeURIComponent(userId)}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+export const updateAlertSettings = (
+  userId: string,
+  data: { enable_email_alerts?: boolean; cooldown_hours?: number },
+) =>
+  apiFetch<AlertSettings>(
+    `/api/profile/alert-settings?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    },
+  );
 
-export const triggerAlert = (userId: string, data: { risk_level: string; explanation: string }) =>
-  apiFetchWithWake<{ status: string; recipients?: number; reason?: string }>(`/api/profile/alerts/send?user_id=${encodeURIComponent(userId)}`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+export const triggerAlert = (
+  userId: string,
+  data: { risk_level: string; explanation: string },
+) =>
+  apiFetchWithWake<{ status: string; recipients?: number; reason?: string }>(
+    `/api/profile/alerts/send?user_id=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 
 // ─── Push Notifications ────────────────────────────────────────────────────
 
@@ -586,10 +848,13 @@ export const registerPushToken = (data: {
   token: string;
   platform?: "android" | "ios" | "web";
 }) =>
-  apiFetch<{ success: boolean; message: string; token_id: string }>("/api/push/register", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  apiFetch<{ success: boolean; message: string; token_id: string }>(
+    "/api/push/register",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
 
 export const unregisterPushToken = (data: { user_id: string; token: string }) =>
   apiFetch<{ success: boolean; message: string }>("/api/push/register", {
@@ -608,15 +873,20 @@ export interface NotificationPreferences {
 }
 
 export const fetchNotificationPreferences = (userId: string) =>
-  apiFetch<NotificationPreferences>(`/api/notification-preferences/${encodeURIComponent(userId)}`);
+  apiFetch<NotificationPreferences>(
+    `/api/notification-preferences/${encodeURIComponent(userId)}`,
+  );
 
 export const updateNotificationPreferences = (
   userId: string,
-  data: Partial<Omit<NotificationPreferences, "user_id">>
+  data: Partial<Omit<NotificationPreferences, "user_id">>,
 ) =>
   apiFetch<NotificationPreferences>(
     `/api/notification-preferences/${encodeURIComponent(userId)}`,
-    { method: "PATCH", body: JSON.stringify(data) }
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
   );
 
 // ─── In-App Notifications ──────────────────────────────────────────────────
@@ -627,7 +897,11 @@ export interface InAppNotificationData {
   sender_id: string | null;
   sender_name: string | null;
   sender_image: string | null;
-  type: "new_message" | "connection_request" | "connection_accepted" | "health_alert";
+  type:
+    | "new_message"
+    | "connection_request"
+    | "connection_accepted"
+    | "health_alert";
   title: string;
   body: string;
   data: Record<string, string>;
@@ -640,24 +914,28 @@ export interface NotificationsResponse {
   unread_count: number;
 }
 
-export const fetchInAppNotifications = (userId: string, unreadOnly = false, limit = 30) =>
+export const fetchInAppNotifications = (
+  userId: string,
+  unreadOnly = false,
+  limit = 30,
+) =>
   apiFetch<NotificationsResponse>(
-    `/api/notifications?user_id=${encodeURIComponent(userId)}&unread_only=${unreadOnly}&limit=${limit}`
+    `/api/notifications?user_id=${encodeURIComponent(userId)}&unread_only=${unreadOnly}&limit=${limit}`,
   );
 
 export const fetchUnreadCount = (userId: string) =>
   apiFetch<{ unread_count: number }>(
-    `/api/notifications/unread-count?user_id=${encodeURIComponent(userId)}`
+    `/api/notifications/unread-count?user_id=${encodeURIComponent(userId)}`,
   );
 
 export const markNotificationRead = (notificationId: string, userId: string) =>
   apiFetch<{ success: boolean }>(
     `/api/notifications/${notificationId}/read?user_id=${encodeURIComponent(userId)}`,
-    { method: "POST" }
+    { method: "POST" },
   );
 
 export const markAllNotificationsRead = (userId: string) =>
   apiFetch<{ success: boolean; marked_count: number }>(
     `/api/notifications/read-all?user_id=${encodeURIComponent(userId)}`,
-    { method: "POST" }
+    { method: "POST" },
   );
