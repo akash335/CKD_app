@@ -1,148 +1,236 @@
 # 🩺 CKD Guardian
 
-**AI-Powered Chronic Kidney Disease Monitoring & Prediction Platform**
+**AI-Powered Chronic Kidney Disease Detection, Monitoring & Telemedicine Platform**
 
-🌍 **Live Website:** [https://ckdguardianofficial.vercel.app](https://ckdguardianofficial.vercel.app)
-
-CKD Guardian is a full-stack healthcare application that combines real-time lab data monitoring with machine learning to predict CKD risk, track kidney health trends, and connect patients with doctors — all through an intuitive, responsive dashboard.
-
----
-
-## ✨ Features
-
-- **ML-Powered Risk Prediction** — GradientBoosting classifier trained on clinical CKD data (creatinine, urea, eGFR, hemoglobin)
-- **Multi-Source Data Input** — Hospital reports, urea monitor readings, and LCR sensor data
-- **Smart Intelligence Reports** — Automated alerts, trend analysis, and personalized recommendations
-- **Doctor-Patient Linking** — Secure connection requests with real-time messaging
-- **Medication Management** — Track medications, drug interaction checks, refill alerts
-- **Analytics Dashboard** — Historical trends, metric comparisons, and health score tracking
-- **Dark/Light Theme** — Full glassmorphism UI with responsive mobile-first design
+🌍 **Live Website:** https://ckd-app-blond.vercel.app  
+⚙️ **Backend API:** https://ckd-guardian-backend.onrender.com  
+📘 **API Docs:** https://ckd-guardian-backend.onrender.com/docs
 
 ---
 
-## 🏗️ Architecture
+## Overview
 
-```
-ckd-app/
-├── frontend/          # Next.js 16 + React 19 (TypeScript)
-├── backend/           # FastAPI + SQLAlchemy (Python)
-│   └── app/
-│       ├── api/       # REST endpoints
-│       ├── models/    # SQLAlchemy ORM models
-│       ├── schemas/   # Pydantic request/response schemas
-│       ├── services/  # Business logic layer
-│       └── websockets/ # Real-time chat
-├── ml/
-│   ├── models/        # Trained model (.pkl) + metadata
-│   ├── training/      # Model training pipeline
-│   └── data/          # Training dataset
-└── mobileapp/         # Capacitor wrapper (Android/iOS)
-```
+CKD Guardian is a full-stack healthcare application designed for Chronic Kidney Disease detection, monitoring, alerts, and patient-doctor interaction.
+
+The system allows patients to enter health readings, receive CKD risk predictions, track health history, view recommendations, manage medications, and connect with doctors through a digital dashboard.
+
+The project includes:
+
+- Next.js frontend
+- FastAPI backend
+- Supabase PostgreSQL database
+- Machine learning model for CKD risk prediction
+- Capacitor-based mobile app wrapper
 
 ---
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
+- **CKD Risk Prediction**  
+  Predicts CKD risk using clinical inputs such as creatinine, urea, eGFR, hemoglobin, and age.
 
-- **Python** 3.11+
-- **Node.js** 20+
-- **PostgreSQL** (or Supabase)
+- **Urea-Based Analysis**  
+  Allows quick risk estimation using urea readings with estimated supporting biomarkers.
 
-### 1. Clone & Setup Environment
+- **Patient Dashboard**  
+  Displays health score, risk level, trends, alerts, and recommendations.
 
-```bash
-git clone https://github.com/your-username/ckd-app.git
-cd ckd-app
-cp .env.example .env
-# Edit .env with your database URL, secrets, and OAuth credentials
-```
+- **Health History**  
+  Stores previous assessments and allows users to review past CKD risk reports.
 
-### 2. Backend
+- **Doctor-Patient Linking**  
+  Supports doctor-patient connection requests and role-based dashboards.
 
-```bash
+- **Medication Management**  
+  Helps users track medicines, dosage schedules, refill alerts, and interaction warnings.
+
+- **Notifications and Alerts**  
+  Supports alert contacts, in-app notifications, and email alert functionality.
+
+- **Mobile App Support**  
+  Includes a Capacitor-based mobile app structure for Android/iOS builds.
+
+---
+
+## Project Structure
+
+```txt
+CKD_Guardian/
+├── backend/          # FastAPI backend and ML logic
+├── frontend/         # Next.js web frontend
+├── mobileapp/        # Capacitor mobile app wrapper
+├── render.yaml       # Render deployment configuration
+├── README.md         # Main project documentation
+└── .gitignore
+
+
+Tech Stack
+Layer	Technology
+Frontend	Next.js, React, TypeScript, Tailwind CSS
+Backend	FastAPI, SQLAlchemy, Pydantic
+Database	Supabase PostgreSQL
+Machine Learning	scikit-learn, pandas, NumPy
+Authentication	NextAuth + backend email/password auth
+Email Alerts	Brevo API
+Mobile	Capacitor
+Deployment	Vercel, Render, Supabase
+Live Deployment
+Frontend
+
+https://ckd-app-blond.vercel.app
+
+The frontend is deployed on Vercel.
+Backend
+
+https://ckd-guardian-backend.onrender.com
+
+The backend is deployed on Render.
+API Documentation
+
+https://ckd-guardian-backend.onrender.com/docs
+
+
+Running Locally
+1. Clone the Repository
+
+git clone https://github.com/akash335/CKD_app.git
+cd CKD_app
+
+
+Backend Setup
+
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-### 3. Frontend
+Backend local URL:
 
-```bash
+http://127.0.0.1:8000
+
+API docs:
+
+http://127.0.0.1:8000/docs
+
+
+Frontend Setup
+
 cd frontend
-npm install
+npm install --legacy-peer-deps
 npm run dev
-```
 
-### 4. Train ML Model (first time only)
+Frontend local URL:
 
-```bash
-cd ckd-app
-python -m ml.training.train_ckd_model
-```
+http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) to access the app.
 
----
+Mobile App Setup
 
-## 🔑 Environment Variables
+cd mobileapp
+npm install --legacy-peer-deps
+npx cap sync android
+cd android
+./gradlew assembleDebug
 
-| Variable | Description |
-|:---------|:------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `SECRET_KEY` | Backend JWT/session secret |
-| `NEXT_PUBLIC_API_URL` | Backend URL for frontend API calls |
-| `NEXTAUTH_URL` | Frontend URL for NextAuth |
-| `NEXTAUTH_SECRET` | NextAuth encryption secret |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+Debug APK output:
 
-See [`.env.example`](.env.example) for the full template.
+mobileapp/android/app/build/outputs/apk/debug/app-debug.apk
 
----
 
-## 🧠 ML Model
+Environment Variables
+Backend Environment Variables
+Create a .env file inside the backend folder:
 
-The CKD risk prediction model uses a **GradientBoosting classifier** trained on clinical kidney disease data with engineered features:
+DATABASE_URL=your_supabase_postgres_url
+SECRET_KEY=your_secret_key
+INTERNAL_API_KEY=ckdguardian-secure-key-2026
 
-- **Input**: Creatinine, Urea, eGFR, Hemoglobin, Age
-- **Engineered Features**: BUN/Creatinine ratio, Anemia flag, eGFR stage encoding
-- **Output**: Risk level (low/moderate/high/critical), confidence score, health score
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=ckdguardian.notifications@gmail.com
+BREVO_SENDER_NAME=CKD Guardian
 
-Model artifacts are stored in `ml/models/` and loaded once at backend startup.
+DEBUG=False
+OTP_EXPIRY_MINUTES=15
+PYTHON_VERSION=3.11.9
 
----
+Frontend Environment Variables
+Create a .env.local file inside the frontend folder:
 
-## 📡 API
+NEXT_PUBLIC_API_URL=https://ckd-guardian-backend.onrender.com
+NEXT_PUBLIC_INTERNAL_API_KEY=ckdguardian-secure-key-2026
 
-The backend exposes a RESTful API with automatic OpenAPI documentation:
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_here
 
-- **Swagger UI (Live)**: [https://ckdguardian.onrender.com/docs](https://ckdguardian.onrender.com/docs)
-- **Swagger UI (Local)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Health Check**: `GET /health`
-- **Predictions**: `POST /api/hospital/predict`, `POST /api/urea/predict`
-- **Records**: `GET /api/records`, `POST /api/records`
-- **Intelligence**: `GET /api/intelligence/report`
-- **Messaging**: WebSocket at `/ws/chat/{conversation_id}`
+For Vercel deployment:
 
----
+NEXTAUTH_URL=https://ckd-app-blond.vercel.app
 
-## 🛠️ Tech Stack
 
-| Layer | Technology |
-|:------|:-----------|
-| Frontend | Next.js 16, React 19, TypeScript, TailwindCSS 4 |
-| Backend | FastAPI, SQLAlchemy 2, Pydantic 2 |
-| Database | PostgreSQL (Supabase) |
-| ML | scikit-learn, pandas, numpy |
-| Auth | NextAuth.js (Google OAuth + email/password) |
-| Real-time | WebSockets (FastAPI) |
-| Mobile | Capacitor |
+Important Notes
+* Do not commit .env files to GitHub.
+* Backend secrets such as DATABASE_URL, SECRET_KEY, and BREVO_API_KEY should only be stored in Render environment variables.
+* Frontend public variables should be stored in Vercel environment variables.
+* Google login is optional and requires separate Google OAuth setup.
+* Email/password login works through the FastAPI backend.
+* The mobile APK is built locally from the mobileapp folder.
 
----
+Main API Routes
 
-## 📄 License
+GET  /health
+GET  /ping
 
-This project is for educational and research purposes.
+POST /api/auth/register
+POST /api/auth/login
+
+POST /api/hospital/predict
+POST /api/urea/predict
+POST /api/hospital/extract-report
+
+GET  /api/records
+POST /api/records
+
+GET  /api/users/{user_id}
+PATCH /api/users/{user_id}
+
+GET  /api/medications
+POST /api/medications
+
+GET  /api/notifications
+POST /api/push/register
+
+Most backend routes require:
+
+X-API-Key: ckdguardian-secure-key-2026
+
+
+Machine Learning Model
+The CKD risk model is stored in:
+
+backend/ml/models/ckd_risk_model.pkl
+
+The model uses clinical kidney-related inputs and returns:
+* risk level
+* confidence score
+* health score
+* explanation
+* contributing factors
+
+Deployment Summary
+Part	Platform
+Frontend	Vercel
+Backend	Render
+Database	Supabase PostgreSQL
+Mobile App	Capacitor APK build
+License
+This project is created for educational, academic, and research purposes.
+
+
+This version is better because it matches your actual final setup:
+
+```txt
+frontend  → Vercel
+backend   → Render
+database  → Supabase
+mobileapp → Capacitor APK

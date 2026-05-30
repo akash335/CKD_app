@@ -1,257 +1,176 @@
-# 🎊 CKD Guardian Mobile App - SETUP COMPLETE!
+# CKD Guardian Mobile App
 
-**Status:** ✅ **100% READY TO BUILD**
+This folder contains the mobile version of **CKD Guardian**, built using **Capacitor**.  
+The mobile app wraps the CKD Guardian web frontend into an Android/iOS app so it can be installed on phones.
 
----
+The app connects to the same deployed backend used by the web version.
 
-## 📍 Project Location
+## Live Services
 
-```
-/home/ajith/Downloads/CKD/ckd-app/mobileapp/
-```
+Frontend:
 
----
+```txt
+https://ckd-app-blond.vercel.app
 
-## ✨ What's Been Created
+Backend API:
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **Capacitor Framework** | ✅ Installed | Version 8.3.1 |
-| **Android Project** | ✅ Generated | Complete native structure |
-| **Website Integration** | ✅ Bundled | Your Next.js app included |
-| **Configuration** | ✅ Complete | capacitor.config.json ready |
-| **Dependencies** | ✅ Installed | All npm packages ready |
-| **Web Assets** | ✅ Prepared | HTML + Next.js build |
+https://ckd-guardian-backend.onrender.com
 
----
+What This Mobile App Does
+The mobile app provides access to:
+* Patient sign up and sign in
+* CKD risk prediction
+* Urea-based risk analysis
+* Patient dashboard
+* Health history
+* Medication tracking
+* Doctor-patient connection features
+* Alerts and recommendations
+* Backend status monitoring
+Tech Stack
+* Capacitor
+* Android native project
+* WebView-based mobile app
+* Next.js frontend integration
+* FastAPI backend integration
+Project Structure
 
-## 📦 Project Contents
-
-```
 mobileapp/
-├── android/                    # Android native project (READY)
-│   ├── app/src/main/
-│   │   ├── assets/public/      # Web files
-│   │   │   ├── .next/          # Your website build
-│   │   │   ├── index.html      # Entry point
-│   │   │   └── ...
-│   │   └── AndroidManifest.xml # App config
-│   ├── build/                  # Build output (will be created)
-│   └── gradle/
-│
-├── www/                        # Web assets directory
-│   ├── .next/                  # Next.js build
-│   ├── index.html
-│   └── [public files]
-│
-├── capacitor.config.json       # Capacitor configuration ✅
-├── package.json               # Dependencies ✅
-├── node_modules/              # npm packages ✅
-│
-├── COMPLETE_BUILD_GUIDE.md    # Full build instructions
-└── BUILD_INSTRUCTIONS.md       # Quick guide
+├── android/                  # Android native project
+│   ├── app/
+│   ├── gradle/
+│   └── build.gradle
+├── ios/                      # iOS native project
+├── assets/                   # App icons and splash assets
+├── icons/                    # Additional icon assets
+├── www/                      # Web assets copied into mobile app
+├── capacitor.config.json     # Capacitor app configuration
+├── package.json              # Mobile app dependencies
+├── BUILD_INSTRUCTIONS.md
+└── README.md
 
-```
+App Information
 
----
+App Name: CKD Guardian
+Package ID: com.ckdguardian.mobileapp
+Platform: Android / iOS through Capacitor
+Type: Hybrid WebView app
 
-## 🚀 THREE WAYS TO BUILD
+Install Dependencies
+From the mobileapp folder:
 
-### **Option 1: Windows/Mac Desktop (Most Common)**
+npm install --legacy-peer-deps
 
-**Requirements:**
-- Java JDK 17
-- Android Studio (for SDK)
-- Node.js
-- npm
+The --legacy-peer-deps flag is used because some Capacitor-related packages may have peer dependency version conflicts.
+Sync Android Project
+After installing dependencies:
 
-**Steps:**
-```bash
-cd mobileapp
-npm install
-npx cap build android
-```
+npx cap sync android
 
-**Result:** APK at `android/app/build/outputs/apk/debug/app-debug.apk`
+If needed:
 
----
+npx capacitor sync android
 
-### **Option 2: Docker (No Local Setup)**
+Build Debug APK
+Go to the Android folder:
 
-**One command:**
-```bash
-docker build -t ckdguardian .
-docker run -v $(pwd):/app ckdguardian
-```
+cd android
+./gradlew assembleDebug
 
-**Result:** APK generated automatically
+After successful build, the APK will be generated here:
 
----
+mobileapp/android/app/build/outputs/apk/debug/app-debug.apk
 
-### **Option 3: Online Services (Easiest)**
+This debug APK can be transferred to an Android phone and installed manually.
+Build Release APK
+For a release build:
 
-- https://www.appetize.io/ (Upload → Build → Download APK)
-- https://www.bitrise.io/ (Same process)
+cd android
+./gradlew assembleRelease
 
-No tools needed!
+The release APK will be generated here:
 
----
+mobileapp/android/app/build/outputs/apk/release/
 
-## 📋 App Specifications
+A release APK may need signing before public distribution.
+Opening in Android Studio
+To open the native Android project:
 
-| Property | Value |
-|----------|-------|
-| **App Name** | CKD Guardian |
-| **Package ID** | com.ckdguardian.mobileapp |
-| **Version** | 1.0.0 |
-| **Type** | Hybrid (WebView-based) |
-| **Size** | ~25-35 MB |
-| **Android Min** | API 21+ (works on most phones) |
-| **Features** | All website features + device APIs |
+npx cap open android
 
----
+Then build or run the app from Android Studio.
+Updating the Mobile App After Frontend Changes
+If the frontend changes, rebuild the frontend first:
 
-## ✅ What's Included
-
-Your APK will have:
-- ✅ Complete CKD Guardian website
-- ✅ Login/authentication
-- ✅ Health data input forms
-- ✅ Risk predictions
-- ✅ Alert system
-- ✅ Email notifications
-- ✅ Dashboard & reports
-- ✅ Profile management
-- ✅ Chat features
-- ✅ All existing functionality
-
----
-
-## 🎯 Next Steps
-
-### **Immediately:**
-
-1. **Choose a build method** (see options above)
-
-2. **Install requirements:**
-   - Java 17+ (https://www.oracle.com/java/)
-   - Android SDK (via Android Studio)
-
-3. **Copy project to your machine:**
-   ```bash
-   # Copy /home/ajith/Downloads/CKD/ckd-app/mobileapp to your computer
-   ```
-
-4. **Build APK:**
-   ```bash
-   cd mobileapp
-   npm install
-   npx cap build android
-   ```
-
-5. **Find APK:**
-   ```
-   mobileapp/android/app/build/outputs/apk/debug/app-debug.apk
-   ```
-
-6. **Test on phone:**
-   - Transfer APK to Android phone
-   - Install and test
-
----
-
-## 📚 Detailed Guides
-
-**See these files for complete instructions:**
-
-1. **`COMPLETE_BUILD_GUIDE.md`** - Full step-by-step guide
-2. **`BUILD_INSTRUCTIONS.md`** - Quick reference
-3. **`README.md`** - Project overview (if created)
-
----
-
-## 🔄 Updating the App
-
-After making changes to your website:
-
-```bash
-# 1. Rebuild frontend
 cd ../frontend
+npm install --legacy-peer-deps
 npm run build
 
-# 2. Copy new build to mobile
-cp -r .next ../mobileapp/www/
+Then sync the updated web files into Capacitor:
 
-# 3. Rebuild APK
 cd ../mobileapp
-npx cap sync
-npx cap build android
-```
+npx cap sync android
 
----
+Then rebuild the APK:
 
-## 🎁 Bonus: Google Play Store Publishing
+cd android
+./gradlew assembleDebug
 
-Once you have a working APK:
+Environment Notes
+The mobile app uses the deployed web/frontend configuration.The frontend should point to the deployed backend:
 
-1. Create Google Play Developer account ($25)
-2. Sign APK with release key
-3. Upload to Play Console
-4. Review (24-48 hours)
-5. App goes live!
+NEXT_PUBLIC_API_URL=https://ckd-guardian-backend.onrender.com
+NEXT_PUBLIC_INTERNAL_API_KEY=ckdguardian-secure-key-2026
 
----
+Backend secrets such as DATABASE_URL, SECRET_KEY, and BREVO_API_KEY should not be placed inside the mobile app.
+Common Issues
+Gradle wrapper missing
+If this error appears:
 
-## 📊 Statistics
+Unable to access jarfile gradle-wrapper.jar
 
-| Metric | Value |
-|--------|-------|
-| **Setup Time** | ✅ Complete |
-| **Build Time** | ~10-15 minutes |
-| **APK Size** | 25-35 MB |
-| **Ready Status** | 100% ✅ |
-| **Next: Build** | On your machine |
+Regenerate the wrapper:
 
----
+gradle wrapper --gradle-version 8.13
+chmod +x gradlew
 
-## 🎊 Summary
+Java version error
+If this error appears:
 
-### What You Have:
-✅ Complete mobile app project  
-✅ All code configured  
-✅ Ready to compile  
-✅ All assets included  
-✅ Fully functional  
+invalid source release: 21
 
-### What You Need:
-1. Java 17+
-2. Android SDK
-3. Run build command
+Install and use Java 21:
 
-### Time to APK:
-- Download tools: 30 min
-- Build: 10-15 min
-- **Total: ~45 minutes**
+brew install openjdk@21
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
 
----
+Then rebuild:
 
-## 💡 Pro Tips
+./gradlew assembleDebug
 
-- Start with **Option 1** (Windows/Mac) if you have those tools
-- Use **Docker** if you want zero setup
-- Use **Online services** if fastest path preferred
-- Keep web and mobile projects **separate** for easier updates
+Old Google Auth plugin issue
+If the build fails because of @codetrix-studio/capacitor-google-auth, remove it if Google login is not needed:
 
----
+npm uninstall @codetrix-studio/capacitor-google-auth --legacy-peer-deps
+npm install --legacy-peer-deps
+npx cap sync android
 
-## ✨ You're All Set!
+Deployment Notes
+* The web frontend is deployed on Vercel.
+* The backend is deployed on Render.
+* The database is hosted on Supabase PostgreSQL.
+* The mobile APK is built locally from this mobileapp folder.
+* Google login is optional and requires separate Google OAuth setup.
+Quick Build Commands
 
-Your CKD Guardian mobile app is configured and ready. Follow the build steps in the guides above and you'll have an APK to install on Android devices!
+cd mobileapp
+npm install --legacy-peer-deps
+npx cap sync android
+cd android
+./gradlew assembleDebug
 
-**Next: Pick your build method and start building!** 🚀
+Final APK path:
 
----
-
-*Setup completed: April 27, 2026*  
-*Project: `/home/ajith/Downloads/CKD/ckd-app/mobileapp/`*  
-*Status: Ready for production* ✅
+mobileapp/android/app/build/outputs/apk/debug/app-debug.apk
