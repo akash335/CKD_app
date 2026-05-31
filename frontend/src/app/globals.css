@@ -21,8 +21,10 @@
   --text-dimmed: #64748b;
   --text-faint: #475569;
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.15), 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.15),
+    0 16px 48px rgba(0, 0, 0, 0.12);
   --shadow-header: 0 1px 2px rgba(0, 0, 0, 0.2);
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.08);
@@ -32,9 +34,13 @@
   --foreground: #cbd5e1;
   --background: #0c1021;
 
-  /* Semantic */
   --shimmer: rgba(255, 255, 255, 0.04);
-  --accent-primary: #8b5cf6; /* violet-500 */
+  --accent-primary: #8b5cf6;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* ── Light theme ───────────────────────────────────────────────────── */
@@ -58,8 +64,10 @@
   --text-dimmed: #64748b;
   --text-faint: #94a3b8;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.06);
   --shadow-header: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   --scrollbar-thumb: rgba(0, 0, 0, 0.1);
@@ -70,7 +78,7 @@
   --background: #f4f6fa;
 
   --shimmer: rgba(0, 0, 0, 0.04);
-  --accent-primary: #7c3aed; /* violet-600 */
+  --accent-primary: #7c3aed;
 }
 
 @theme inline {
@@ -81,6 +89,13 @@
   --animate-in: animate-in 0.5s ease-out;
 }
 
+html {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background: var(--bg-primary);
+}
+
 body {
   background: var(--bg-primary);
   color: var(--foreground);
@@ -88,28 +103,62 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.35s ease, color 0.35s ease;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
 }
 
 /* ── Animations ─────────────────────────────────────────────────────── */
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-from-bottom {
-  from { transform: translateY(0.75rem); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(0.75rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-from-top-2 {
-  from { transform: translateY(-0.5rem); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer-sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-in {
@@ -132,52 +181,108 @@ body {
   animation: slide-in-from-top-2 0.3s ease-out;
 }
 
-@keyframes scale-in {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
 /* ── Scrollbar ──────────────────────────────────────────────────────── */
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
 
 /* ── Background pattern ─────────────────────────────────────────────── */
 
 .bg-grid-pattern {
-  background-image:
-    radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--grid-dot) 1px,
+    transparent 0
+  );
   background-size: 32px 32px;
 }
 
 /* ── Theme-aware utility classes ─────────────────────────────────────── */
 
-.theme-bg { background: var(--bg-primary); }
-.theme-bg-secondary { background: var(--bg-secondary); }
-.theme-bg-card { background: var(--bg-card); }
-.theme-bg-header { background: var(--bg-header); }
-.theme-bg-input { background: var(--bg-input); }
-.theme-bg-elevated { background: var(--bg-elevated); }
+.theme-bg {
+  background: var(--bg-primary);
+}
 
-.theme-border { border-color: var(--border-primary); }
-.theme-border-hover { border-color: var(--border-hover); }
-.theme-border-input { border-color: var(--border-input); }
+.theme-bg-secondary {
+  background: var(--bg-secondary);
+}
 
-.theme-text { color: var(--text-primary); }
-.theme-text-secondary { color: var(--text-secondary); }
-.theme-text-muted { color: var(--text-muted); }
-.theme-text-dimmed { color: var(--text-dimmed); }
-.theme-text-faint { color: var(--text-faint); }
+.theme-bg-card {
+  background: var(--bg-card);
+}
 
-.theme-shadow-card { box-shadow: var(--shadow-card); }
-.theme-shadow-card-hover { box-shadow: var(--shadow-card-hover); }
+.theme-bg-header {
+  background: var(--bg-header);
+}
+
+.theme-bg-input {
+  background: var(--bg-input);
+}
+
+.theme-bg-elevated {
+  background: var(--bg-elevated);
+}
+
+.theme-border {
+  border-color: var(--border-primary);
+}
+
+.theme-border-hover {
+  border-color: var(--border-hover);
+}
+
+.theme-border-input {
+  border-color: var(--border-input);
+}
+
+.theme-text {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.theme-text-muted {
+  color: var(--text-muted);
+}
+
+.theme-text-dimmed {
+  color: var(--text-dimmed);
+}
+
+.theme-text-faint {
+  color: var(--text-faint);
+}
+
+.theme-shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.theme-shadow-card-hover {
+  box-shadow: var(--shadow-card-hover);
+}
 
 /* ── Smooth transitions ──────────────────────────────────────────────── */
 
 .theme-transition {
-  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+  transition: background-color 0.35s ease, border-color 0.35s ease,
+    color 0.35s ease, box-shadow 0.35s ease;
 }
 
 /* ── Number input spinners removal ───────────────────────────────────── */
@@ -187,14 +292,13 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
 /* ── Google Translate Overrides ──────────────────────────────────────── */
-/* Completely hides all Google Translate injected UI elements, banners,  */
-/* and logos to keep the app looking fully native.                       */
 
 iframe.goog-te-banner-frame,
 iframe.skiptranslate,
@@ -233,55 +337,162 @@ body {
 }
 
 /* ── Mobile Responsive Typography ───────────────────────────────────── */
-/* Scales up tiny text for readability on small screens.                */
-/* Desktop (≥640px) is UNTOUCHED — these rules only fire on mobile.    */
 
 @media (max-width: 639px) {
-
-  /* ── Tiny fixed-pixel sizes → readable minimums ──────────────────── */
-  /* text-[8px] */
   [style*="font-size:8px"],
-  .text-\[8px\] { font-size: 11px !important; }
+  .text-\[8px\] {
+    font-size: 11px !important;
+  }
 
-  /* text-[9px] */
   [style*="font-size:9px"],
-  .text-\[9px\] { font-size: 12px !important; }
+  .text-\[9px\] {
+    font-size: 12px !important;
+  }
 
-  /* text-[10px] */
   [style*="font-size:10px"],
-  .text-\[10px\] { font-size: 13px !important; }
+  .text-\[10px\] {
+    font-size: 13px !important;
+  }
 
-  /* text-[11px] */
   [style*="font-size:11px"],
-  .text-\[11px\] { font-size: 13px !important; }
+  .text-\[11px\] {
+    font-size: 13px !important;
+  }
 
-  /* ── Tailwind named sizes — subtle bump ──────────────────────────── */
-  /* text-xs (12px) → 13px */
-  .text-xs { font-size: 13px !important; line-height: 1.35; }
+  .text-xs {
+    font-size: 13px !important;
+    line-height: 1.35;
+  }
 
-  /* text-sm (14px) → 15px */
-  .text-sm { font-size: 15px !important; line-height: 1.4; }
+  .text-sm {
+    font-size: 15px !important;
+    line-height: 1.4;
+  }
 
-  /* ── Headings — slightly larger on mobile ────────────────────────── */
-  h1, .text-xl { font-size: clamp(1.2rem, 5vw, 1.25rem) !important; }
-  h2, .text-lg { font-size: clamp(1.05rem, 4.5vw, 1.125rem) !important; }
-  h3, .text-base { font-size: clamp(0.95rem, 4vw, 1rem) !important; }
+  h1,
+  .text-xl {
+    font-size: clamp(1.2rem, 5vw, 1.25rem) !important;
+  }
 
-  /* ── Form labels and inputs — readable sizing ────────────────────── */
+  h2,
+  .text-lg {
+    font-size: clamp(1.05rem, 4.5vw, 1.125rem) !important;
+  }
+
+  h3,
+  .text-base {
+    font-size: clamp(0.95rem, 4vw, 1rem) !important;
+  }
+
   label {
     font-size: 13px;
   }
-  input, select, textarea {
-    font-size: 16px !important; /* Prevents iOS zoom on focus */
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 
-  /* ── Cards and dashboard body text ───────────────────────────────── */
   .theme-text-muted {
     font-size: max(13px, inherit);
     line-height: 1.45;
   }
+
   .theme-text-dimmed {
     font-size: max(12px, inherit);
     line-height: 1.4;
+  }
+}
+
+/* ── iOS / Capacitor Safe Area Fix ─────────────────────────────────── */
+/* Prevents content from hiding behind iPhone notch / Dynamic Island.  */
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Use this on headers/navbars */
+.ios-safe-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+/* Use this on main page containers */
+.ios-safe-x {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.ios-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* Mobile header helper */
+.mobile-header-safe {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+}
+
+/* Mobile page helper */
+.mobile-page-safe {
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* Horizontal tab scrolling for small screens */
+.mobile-scroll-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.mobile-scroll-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prevent wide UI from pushing outside iPhone screen */
+@media (max-width: 639px) {
+  header,
+  nav,
+  main,
+  section {
+    max-width: 100vw;
+  }
+
+  .mobile-no-overflow {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .mobile-card-safe {
+    width: 100%;
+    max-width: calc(100vw - 28px);
+  }
+
+  .mobile-tabs-safe {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-tabs-safe::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-tabs-safe > * {
+    flex: 0 0 auto;
   }
 }
