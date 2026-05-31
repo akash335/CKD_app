@@ -282,7 +282,7 @@ export const fetchInsights = (userId?: string) =>
     userId ? `/api/records/insights?user_id=${userId}` : "/api/records/insights",
   );
 
-// ─── Patients (Doctor view) ───────────────────────────────────────────────
+// ─── Patients Doctor view ───────────────────────────────────────────────
 
 export interface PatientSummary {
   user_id: string;
@@ -301,7 +301,7 @@ export const fetchPatients = (doctorId?: string) =>
     doctorId ? `/api/records/patients?doctor_id=${doctorId}` : "/api/records/patients",
   );
 
-// ─── Requests (Doctor-Patient Linking) ─────────────────────────────────────
+// ─── Requests Doctor-Patient Linking ─────────────────────────────────────
 
 export interface ConnectionRequest {
   id: string;
@@ -431,14 +431,6 @@ interface MedicationEntryCreateServer {
   override_log_at: string | null;
 }
 
-interface MedicationMealTimesServer {
-  user_id: string;
-  breakfast: string;
-  lunch: string;
-  dinner: string;
-  updated_at: string;
-}
-
 const toMedicationInteractionServer = (
   interaction: MedicationInteraction,
 ): MedicationInteractionServer => ({
@@ -499,15 +491,6 @@ const toMedicationEntryCreateServer = (
   is_phosphate_binder: payload.isPhosphateBinder,
   interaction: toMedicationInteractionServer(payload.interaction),
   override_log_at: payload.overrideLogAt,
-});
-
-const fromMedicationMealTimesServer = (
-  payload: MedicationMealTimesServer,
-): MedicationMealTimes => ({
-  breakfast: payload.breakfast,
-  lunch: payload.lunch,
-  dinner: payload.dinner,
-  updatedAt: payload.updated_at,
 });
 
 export const createConnectionRequest = (patientId: string, username: string) =>
@@ -587,26 +570,92 @@ export const updateMedicationEntry = (
     },
   ).then(fromMedicationEntryServer);
 
-export const fetchMedicationMealTimes = (userId: string) =>
-  apiFetch<MedicationMealTimesServer>(
-    `/api/medications/preferences?user_id=${encodeURIComponent(userId)}`,
-  ).then(fromMedicationMealTimesServer);
+/**
+ * Meal times are currently stored locally because the backend route
+ * /api/medications/preferences does not exist correctly yet.
+ *
+ * Earlier frontend code sent:
+ * { breakfast, lunch, dinner }
+ * to /api/medications/preferences, but the backend interpreted
+ * "preferences" as a medication ID and returned 422 validation errors.
+ *
+ * This local storage version removes that broken backend call and keeps
+ * the app stable on web, Android, and iOS.
+ */
+const medicationMealTimesStorageKey = (userId: string) =>
+  `ckd_guardian_meal_times_${userId}`;
 
-export const saveMedicationMealTimes = (
+const DEFAULT_MEDICATION_MEAL_TIMES: MedicationMealTimes = {
+  breakfast: "08:00",
+  lunch: "13:00",
+  dinner: "19:00",
+  updatedAt: new Date().toISOString(),
+};
+
+const getLocalMedicationMealTimes = (userId: string): MedicationMealTimes => {
+  if (typeof window === "undefined") {
+    return DEFAULT_MEDICATION_MEAL_TIMES;
+  }
+
+  try {
+    const saved = window.localStorage.getItem(
+      medicationMealTimesStorageKey(userId),
+    );
+
+    if (!saved) {
+      return DEFAULT_MEDICATION_MEAL_TIMES;
+    }
+
+    const parsed = JSON.parse(saved);
+
+    if (parsed?.breakfast && parsed?.lunch && parsed?.dinner) {
+      return {
+        breakfast: parsed.breakfast,
+        lunch: parsed.lunch,
+        dinner: parsed.dinner,
+        updatedAt: parsed.updatedAt ?? new Date().toISOString(),
+      };
+    }
+
+    return DEFAULT_MEDICATION_MEAL_TIMES;
+  } catch {
+    return DEFAULT_MEDICATION_MEAL_TIMES;
+  }
+};
+
+const saveLocalMedicationMealTimes = (
   userId: string,
   payload: MedicationMealTimes,
-) =>
-  apiFetch<MedicationMealTimesServer>(
-    `/api/medications/preferences?user_id=${encodeURIComponent(userId)}`,
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        breakfast: payload.breakfast,
-        lunch: payload.lunch,
-        dinner: payload.dinner,
-      }),
-    },
-  ).then(fromMedicationMealTimesServer);
+): MedicationMealTimes => {
+  const data: MedicationMealTimes = {
+    breakfast: payload.breakfast,
+    lunch: payload.lunch,
+    dinner: payload.dinner,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(
+      medicationMealTimesStorageKey(userId),
+      JSON.stringify(data),
+    );
+  }
+
+  return data;
+};
+
+export const fetchMedicationMealTimes = async (
+  userId: string,
+): Promise<MedicationMealTimes> => {
+  return getLocalMedicationMealTimes(userId);
+};
+
+export const saveMedicationMealTimes = async (
+  userId: string,
+  payload: MedicationMealTimes,
+): Promise<MedicationMealTimes> => {
+  return saveLocalMedicationMealTimes(userId, payload);
+};
 
 // ─── Messaging ─────────────────────────────────────────────────────────────
 
