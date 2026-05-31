@@ -14,14 +14,14 @@ interface AppShellProps {
 }
 
 /**
- * App-wide layout shell: safe iOS header, ambient background, main content, and footer.
+ * App-wide layout shell: iOS-safe header, main content, and footer.
  */
 export function AppShell({ children }: AppShellProps) {
   const { connected, loading: healthLoading, warming } = useHealthCheck();
   const { data: session } = useSession();
 
   return (
-    <div className="min-h-screen bg-grid-pattern flex flex-col theme-transition mobile-no-overflow">
+    <div className="min-h-screen bg-grid-pattern flex flex-col theme-transition overflow-x-hidden">
       {/* Ambient gradient orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-sky-500/[0.04] blur-3xl" />
@@ -31,19 +31,20 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Top navigation bar */}
       <header
-        className="sticky top-0 z-50 border-b theme-border theme-transition mobile-header-safe"
+        className="sticky top-0 z-50 border-b theme-border theme-transition"
         style={{
           background: "var(--bg-header)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)",
         }}
       >
-        <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-2 px-4 pb-3 sm:px-6 lg:px-8">
+          {/* Left brand */}
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex min-w-0 flex-1 items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            {/* Logo */}
             <div className="flex h-8 w-8 shrink-0 items-center justify-center drop-shadow-md">
               <img
                 src="/logo/logo.png"
@@ -52,23 +53,25 @@ export function AppShell({ children }: AppShellProps) {
               />
             </div>
 
-            {/* Hide title on very small mobile screens to avoid notch/header overlap */}
-            <span className="hidden sm:inline text-sm font-semibold tracking-tight theme-text truncate">
+            <span className="block truncate text-sm font-semibold tracking-tight theme-text">
               CKD Guardian
-            </span>
-
-            <span className="hidden md:inline-flex items-center rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-400 border border-sky-500/20">
-              BETA
             </span>
           </Link>
 
           {/* Right nav */}
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <ThemeToggle />
-            <NotificationBell />
-            <LanguageSwitcher />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex h-8 w-8 items-center justify-center">
+              <ThemeToggle />
+            </div>
 
-            {/* User avatar */}
+            <div className="flex h-8 w-8 items-center justify-center">
+              <NotificationBell />
+            </div>
+
+            <div className="flex h-8 items-center justify-center">
+              <LanguageSwitcher />
+            </div>
+
             <Link
               href="/profile"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-700 text-[10px] font-bold text-white transition-all hover:ring-2 hover:ring-white/20 overflow-hidden"
@@ -93,12 +96,17 @@ export function AppShell({ children }: AppShellProps) {
       </header>
 
       {/* Main content */}
-      <main className="relative flex-1 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8 mobile-page-safe">
+      <main className="relative flex-1 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <PullToRefresh>{children}</PullToRefresh>
       </main>
 
       {/* Footer */}
-      <footer className="border-t theme-border py-4 theme-transition ios-safe-bottom">
+      <footer
+        className="border-t theme-border py-4 theme-transition"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+        }}
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] theme-text-faint">
             <span>© 2026 CKD Guardian. Built for better kidney health.</span>
