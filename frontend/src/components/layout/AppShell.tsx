@@ -1,7 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { useHealthCheck } from "@/hooks/useHealthCheck";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { NotificationBell } from "./NotificationBell";
@@ -14,10 +12,9 @@ interface AppShellProps {
 }
 
 /**
- * App-wide layout shell: iOS-safe header, main content, and footer.
+ * App-wide layout shell: iOS-safe header, main content, and clean public footer.
  */
 export function AppShell({ children }: AppShellProps) {
-  const { connected, loading: healthLoading, warming } = useHealthCheck();
   const { data: session } = useSession();
 
   return (
@@ -53,13 +50,14 @@ export function AppShell({ children }: AppShellProps) {
               />
             </div>
 
-            <span className="block truncate text-sm font-semibold tracking-tight theme-text">
+            {/* Hidden on very small screens to prevent overlap with iPhone status bar */}
+            <span className="hidden xs:block sm:block truncate text-sm font-semibold tracking-tight theme-text">
               CKD Guardian
             </span>
           </Link>
 
           {/* Right nav */}
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center">
               <ThemeToggle />
             </div>
@@ -100,7 +98,7 @@ export function AppShell({ children }: AppShellProps) {
         <PullToRefresh>{children}</PullToRefresh>
       </main>
 
-      {/* Footer */}
+      {/* Public footer — no backend/database/version info shown to users */}
       <footer
         className="border-t theme-border py-4 theme-transition"
         style={{
@@ -108,35 +106,8 @@ export function AppShell({ children }: AppShellProps) {
         }}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] theme-text-faint">
+          <div className="flex items-center justify-center text-center text-[11px] theme-text-faint">
             <span>© 2026 CKD Guardian. Built for better kidney health.</span>
-
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5">
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    healthLoading
-                      ? "bg-amber-400 animate-pulse"
-                      : warming
-                      ? "bg-amber-400 animate-pulse"
-                      : connected
-                      ? "bg-emerald-400"
-                      : "bg-red-400"
-                  )}
-                />
-
-                {healthLoading
-                  ? "Checking connection..."
-                  : warming
-                  ? "Warming up server..."
-                  : connected
-                  ? "Backend connected"
-                  : "Backend offline"}
-              </span>
-
-              <span>v0.1.0-beta</span>
-            </div>
           </div>
         </div>
       </footer>

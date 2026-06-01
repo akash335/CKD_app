@@ -10,9 +10,17 @@
       "ckd-guardian-backend.onrender.com"
     ]
   },
+  "ios": {
+    "contentInset": "automatic"
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1000
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#f4f6fa"
     }
   }
 }
