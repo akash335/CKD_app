@@ -1,131 +1,15 @@
-# 🩺 CKD Guardian
+## 📱 Mobile App Support
 
-**AI-Powered Chronic Kidney Disease Detection, Monitoring & Telemedicine Platform**
+CKD Guardian is also available as a mobile app using **Capacitor**, which wraps the live deployed Next.js web app inside native Android and iOS projects.
 
-🌍 **Live Website:** https://ckd-guardian.vercel.app/
-⚙️ **Backend API:** https://ckd-guardian-backend.onrender.com  
-📘 **API Docs:** https://ckd-guardian-backend.onrender.com/docs
-
----
-
-## Overview
-
-CKD Guardian is a full-stack healthcare application designed for Chronic Kidney Disease detection, monitoring, alerts, and patient-doctor interaction.
-
-The system allows patients to enter health readings, receive CKD risk predictions, track health history, view recommendations, manage medications, and connect with doctors through a digital dashboard.
-
-The project includes:
-
-- Next.js frontend
-- FastAPI backend
-- Supabase PostgreSQL database
-- Machine learning model for CKD risk prediction
-- Capacitor-based mobile app wrapper
-
----
-
-## Features
-
-- **CKD Risk Prediction**  
-  Predicts CKD risk using clinical inputs such as creatinine, urea, eGFR, hemoglobin, and age.
-
-- **Urea-Based Analysis**  
-  Allows quick risk estimation using urea readings with estimated supporting biomarkers.
-
-- **Patient Dashboard**  
-  Displays health score, risk level, trends, alerts, and recommendations.
-
-- **Health History**  
-  Stores previous assessments and allows users to review past CKD risk reports.
-
-- **Doctor-Patient Linking**  
-  Supports doctor-patient connection requests and role-based dashboards.
-
-- **Medication Management**  
-  Helps users track medicines, dosage schedules, refill alerts, and interaction warnings.
-
-- **Notifications and Alerts**  
-  Supports alert contacts, in-app notifications, and email alert functionality.
-
-- **Mobile App Support**  
-  Includes a Capacitor-based mobile app structure for Android/iOS builds.
-
----
-
-## Project Structure
+The mobile app loads the production frontend:
 
 ```txt
-CKD_Guardian/
-├── backend/          # FastAPI backend and ML logic
-├── frontend/         # Next.js web frontend
-├── mobileapp/        # Capacitor mobile app wrapper
-├── render.yaml       # Render deployment configuration
-├── README.md         # Main project documentation
-└── .gitignore
+https://ckd-guardian.vercel.app
 
-
-Tech Stack
-Layer	Technology
-Frontend	Next.js, React, TypeScript, Tailwind CSS
-Backend	FastAPI, SQLAlchemy, Pydantic
-Database	Supabase PostgreSQL
-Machine Learning	scikit-learn, pandas, NumPy
-Authentication	NextAuth + backend email/password auth
-Email Alerts	Brevo API
-Mobile	Capacitor
-Deployment	Vercel, Render, Supabase
-Live Deployment
-Frontend
-
-https://ckd-app-blond.vercel.app
-
-The frontend is deployed on Vercel.
-Backend
-
-https://ckd-guardian-backend.onrender.com
-
-The backend is deployed on Render.
-API Documentation
-
-https://ckd-guardian-backend.onrender.com/docs
-
-
-Running Locally
-1. Clone the Repository
-
-git clone https://github.com/akash335/CKD_app.git
-cd CKD_app
-
-
-Backend Setup
-
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-Backend local URL:
-
-http://127.0.0.1:8000
-
-API docs:
-
-http://127.0.0.1:8000/docs
-
-
-Frontend Setup
-
-cd frontend
-npm install --legacy-peer-deps
-npm run dev
-
-Frontend local URL:
-
-http://localhost:3000
-
-
-Mobile App Setup
+Because the app uses the live Vercel URL, most frontend updates are reflected automatically in both Android and iOS after redeployment.
+Android
+The Android version is working through Android Studio / Gradle and can generate a debug APK.
 
 cd mobileapp
 npm install --legacy-peer-deps
@@ -133,104 +17,86 @@ npx cap sync android
 cd android
 ./gradlew assembleDebug
 
-Debug APK output:
+APK output:
 
 mobileapp/android/app/build/outputs/apk/debug/app-debug.apk
 
+iOS
+The iOS version is also working through Xcode using Capacitor.
 
-Environment Variables
-Backend Environment Variables
-Create a .env file inside the backend folder:
+cd mobileapp
+npm install --legacy-peer-deps
+npx cap sync ios
+npx cap open ios
 
-DATABASE_URL=your_supabase_postgres_url
-SECRET_KEY=your_secret_key
-INTERNAL_API_KEY=ckdguardian-secure-key-2026
+After opening in Xcode:
+1. Select the App target.
+2. Go to Signing & Capabilities.
+3. Choose your Apple ID / Personal Team.
+4. Enable automatic signing.
+5. Select an iPhone simulator or a connected iPhone.
+6. Click Run.
+The iOS app successfully loads the CKD Guardian live app from:
 
-BREVO_API_KEY=your_brevo_api_key
-BREVO_SENDER_EMAIL=ckdguardian.notifications@gmail.com
-BREVO_SENDER_NAME=CKD Guardian
+https://ckd-guardian.vercel.app
 
-DEBUG=False
-OTP_EXPIRY_MINUTES=15
-PYTHON_VERSION=3.11.9
-
-Frontend Environment Variables
-Create a .env.local file inside the frontend folder:
-
-NEXT_PUBLIC_API_URL=https://ckd-guardian-backend.onrender.com
-NEXT_PUBLIC_INTERNAL_API_KEY=ckdguardian-secure-key-2026
-
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret_here
-
-For Vercel deployment:
-
-NEXTAUTH_URL=https://ckd-app-blond.vercel.app
+For installing on a personal iPhone, a free Apple ID works through Xcode. For TestFlight or App Store distribution, an Apple Developer Program account is required.
 
 
-Important Notes
-* Do not commit .env files to GitHub.
-* Backend secrets such as DATABASE_URL, SECRET_KEY, and BREVO_API_KEY should only be stored in Render environment variables.
-* Frontend public variables should be stored in Vercel environment variables.
-* Google login is optional and requires separate Google OAuth setup.
-* Email/password login works through the FastAPI backend.
-* The mobile APK is built locally from the mobileapp folder.
+Also update your **`mobileapp/README.md`** with this:
 
-Main API Routes
+```md
+# CKD Guardian Mobile App
 
-GET  /health
-GET  /ping
+This folder contains the Capacitor mobile wrapper for CKD Guardian.
 
-POST /api/auth/register
-POST /api/auth/login
+The app supports:
 
-POST /api/hospital/predict
-POST /api/urea/predict
-POST /api/hospital/extract-report
+- Android
+- iOS
 
-GET  /api/records
-POST /api/records
-
-GET  /api/users/{user_id}
-PATCH /api/users/{user_id}
-
-GET  /api/medications
-POST /api/medications
-
-GET  /api/notifications
-POST /api/push/register
-
-Most backend routes require:
-
-X-API-Key: ckdguardian-secure-key-2026
-
-
-Machine Learning Model
-The CKD risk model is stored in:
-
-backend/ml/models/ckd_risk_model.pkl
-
-The model uses clinical kidney-related inputs and returns:
-* risk level
-* confidence score
-* health score
-* explanation
-* contributing factors
-
-Deployment Summary
-Part	Platform
-Frontend	Vercel
-Backend	Render
-Database	Supabase PostgreSQL
-Mobile App	Capacitor APK build
-License
-This project is created for educational, academic, and research purposes.
-
-
-This version is better because it matches your actual final setup:
+The mobile app loads the live CKD Guardian frontend:
 
 ```txt
-frontend  → Vercel
-backend   → Render
-database  → Supabase
-mobileapp → Capacitor APK
+https://ckd-guardian.vercel.app
+
+Backend API:
+
+https://ckd-guardian-backend.onrender.com
+
+Android Setup
+
+npm install --legacy-peer-deps
+npx cap sync android
+npx cap open android
+
+To build a debug APK:
+
+cd android
+./gradlew assembleDebug
+
+APK location:
+
+android/app/build/outputs/apk/debug/app-debug.apk
+
+iOS Setup
+
+npm install --legacy-peer-deps
+npx cap sync ios
+npx cap open ios
+
+This opens the iOS project in Xcode.
+In Xcode:
+1. Select the App target.
+2. Open Signing & Capabilities.
+3. Select your Apple ID / Personal Team.
+4. Enable automatic signing.
+5. Choose an iPhone simulator or connected iPhone.
+6. Click Run.
+The iOS app is working and loads the deployed CKD Guardian web app inside a native Capacitor WebView.
+Notes
+* Frontend UI changes should be deployed to Vercel.
+* Since the mobile app points to the live Vercel URL, Android and iOS usually receive UI updates without rebuilding the native app.
+* Re-run npx cap sync ios or npx cap sync android when native configuration or plugins change.
+* A free Apple ID can run the iOS app on a personal iPhone through Xcode.
+* TestFlight and App Store distribution require a paid Apple Developer account.

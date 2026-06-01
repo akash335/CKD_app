@@ -9,7 +9,7 @@ The frontend is built with **Next.js** and connects to the FastAPI backend deplo
 Frontend:
 
 ```txt
-https://ckd-app-blond.vercel.app
+https://ckd-guardian.vercel.app/
 
 Backend API:
 

@@ -10,7 +10,7 @@ The app connects to the same deployed backend used by the web version.
 Frontend:
 
 ```txt
-https://ckd-app-blond.vercel.app
+https://ckd-guardian.vercel.app/
 
 Backend API:
 
