@@ -1663,45 +1663,138 @@ export function MedicationManagementSection() {
 
   const alertsPanel = (
     <div className="space-y-3">
-      <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
-        <p className="text-[10px] uppercase tracking-wider theme-text-dimmed">Missed dose handling</p>
-        <p className="text-xs theme-text-muted">Follow-up is scheduled 15–30 minutes after a missed dose.</p>
+      {/* Missed Dose Handling */}
+      <div
+        className="rounded-2xl border p-4"
+        style={{
+          borderColor: "var(--border-primary)",
+          background: "var(--bg-card)",
+        }}
+      >
+        <div className="mb-3">
+          <p className="text-[11px] uppercase tracking-[0.18em] font-semibold theme-text-dimmed">
+            Missed Dose Handling
+          </p>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <p className="mt-1 text-sm theme-text-muted leading-relaxed">
+            Choose what happened to the missed dose. Follow-up reminders are
+            scheduled 15–30 minutes after the action.
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3">
           <button
             type="button"
             onClick={markDoseTaken}
-            className="min-h-11 rounded-full border px-3 text-xs font-medium theme-text"
-            style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}
+            className={cn(
+              "min-h-11 rounded-xl border px-3 text-sm font-semibold transition-all",
+              missedDoseAction.status === "taken"
+                ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                : "theme-text hover:bg-[var(--bg-elevated)]"
+            )}
+            style={{
+              borderColor:
+                missedDoseAction.status === "taken"
+                  ? "rgba(16,185,129,0.45)"
+                  : "var(--border-primary)",
+              background:
+                missedDoseAction.status === "taken"
+                  ? "rgba(16,185,129,0.12)"
+                  : "var(--bg-elevated)",
+            }}
           >
             Taken
           </button>
+
           <button
             type="button"
             onClick={markDoseSkipped}
-            className="min-h-11 rounded-full border px-3 text-xs font-medium text-amber-300"
-            style={{ borderColor: "rgba(245,158,11,0.35)", background: "rgba(245,158,11,0.12)" }}
+            className={cn(
+              "min-h-11 rounded-xl border px-3 text-sm font-semibold transition-all",
+              missedDoseAction.status === "skipped"
+                ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-300"
+                : "theme-text hover:bg-[var(--bg-elevated)]"
+            )}
+            style={{
+              borderColor:
+                missedDoseAction.status === "skipped"
+                  ? "rgba(245,158,11,0.45)"
+                  : "var(--border-primary)",
+              background:
+                missedDoseAction.status === "skipped"
+                  ? "rgba(245,158,11,0.12)"
+                  : "var(--bg-elevated)",
+            }}
           >
             Skipped
           </button>
+
           <button
             type="button"
             onClick={remindLater}
-            className="min-h-11 rounded-full border px-3 text-xs font-medium theme-text"
-            style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}
+            className={cn(
+              "min-h-11 rounded-xl border px-3 text-sm font-semibold transition-all",
+              missedDoseAction.status === "remind_later"
+                ? "border-sky-500/50 bg-sky-500/15 text-sky-600 dark:text-sky-300"
+                : "theme-text hover:bg-[var(--bg-elevated)]"
+            )}
+            style={{
+              borderColor:
+                missedDoseAction.status === "remind_later"
+                  ? "rgba(14,165,233,0.45)"
+                  : "var(--border-primary)",
+              background:
+                missedDoseAction.status === "remind_later"
+                  ? "rgba(14,165,233,0.12)"
+                  : "var(--bg-elevated)",
+            }}
           >
             Remind in 30 min
           </button>
         </div>
 
+        {missedDoseAction.status === "taken" && (
+          <div
+            className="mt-3 rounded-xl border px-3 py-2"
+            style={{
+              borderColor: "rgba(16,185,129,0.35)",
+              background: "rgba(16,185,129,0.10)",
+            }}
+          >
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-300">
+              Dose marked as taken.
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-200/80">
+              Continue with the next scheduled dose normally.
+            </p>
+          </div>
+        )}
+
         {missedDoseAction.status === "skipped" && (
-          <div className="mt-3 rounded-lg border p-2" style={{ borderColor: "rgba(245,158,11,0.35)", background: "rgba(245,158,11,0.10)" }}>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-amber-300">Skip reason</label>
+          <div
+            className="mt-3 rounded-xl border p-3"
+            style={{
+              borderColor: "rgba(245,158,11,0.35)",
+              background: "rgba(245,158,11,0.10)",
+            }}
+          >
+            <label className="mb-1 block text-[11px] uppercase tracking-[0.16em] font-semibold text-amber-600 dark:text-amber-300">
+              Skip Reason
+            </label>
+
             <select
               value={missedDoseAction.skipReason}
-              onChange={(event) => setMissedDoseAction((prev) => ({ ...prev, skipReason: event.target.value }))}
+              onChange={(event) =>
+                setMissedDoseAction((prev) => ({
+                  ...prev,
+                  skipReason: event.target.value,
+                }))
+              }
               className="h-11 w-full rounded-xl border px-4 text-sm theme-text transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
-              style={{ borderColor: "var(--border-primary)", background: "var(--bg-elevated)" }}
+              style={{
+                borderColor: "var(--border-primary)",
+                background: "var(--bg-elevated)",
+              }}
             >
               <option value="">Select reason</option>
               <option value="Forgot">Forgot</option>
@@ -1710,31 +1803,126 @@ export function MedicationManagementSection() {
               <option value="Doctor said stop">Doctor said stop</option>
               <option value="Other">Other</option>
             </select>
-            <p className="mt-2 text-[11px] text-amber-100">{catchUpGuidance}</p>
+
+            <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-200">
+              {catchUpGuidance}
+            </p>
           </div>
         )}
 
-        {(missedDoseAction.status === "skipped" || missedDoseAction.status === "remind_later") && (
-          <p className="mt-2 text-[11px] theme-text-dimmed">Follow-up reminder at {formatDateTime(missedDoseAction.followUpAt)}</p>
+        {missedDoseAction.status === "remind_later" && (
+          <div
+            className="mt-3 rounded-xl border px-3 py-2"
+            style={{
+              borderColor: "rgba(14,165,233,0.35)",
+              background: "rgba(14,165,233,0.10)",
+            }}
+          >
+            <p className="text-sm font-medium text-sky-600 dark:text-sky-300">
+              Reminder scheduled.
+            </p>
+            <p className="mt-0.5 text-xs text-sky-700/80 dark:text-sky-200/80">
+              Follow-up reminder at {formatDateTime(missedDoseAction.followUpAt)}
+            </p>
+          </div>
+        )}
+
+        {missedDoseAction.status === "skipped" && (
+          <p className="mt-2 text-xs theme-text-dimmed">
+            Follow-up reminder at {formatDateTime(missedDoseAction.followUpAt)}
+          </p>
         )}
       </div>
 
+      {/* Critical Refill Alerts */}
       {criticalMedicationMetrics.length > 0 && (
-        <div className="rounded-xl border p-3" style={{ borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.10)" }}>
-          <p className="text-[10px] uppercase tracking-wider text-red-300">Critical refill alerts</p>
-          <div className="mt-2 space-y-2">
-            {criticalMedicationMetrics.map(({ medication, daysRemaining }) => (
-              <div key={medication.id} className="rounded-lg border p-2" style={{ borderColor: "rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.07)" }}>
-                <p className="text-sm font-medium text-red-100">{medication.name}</p>
-                <p className="text-[11px] text-red-200">{Math.floor(daysRemaining)} days left</p>
-              </div>
-            ))}
+        <div
+          className="rounded-2xl border p-4"
+          style={{
+            borderColor: "rgba(239,68,68,0.45)",
+            background: "rgba(239,68,68,0.08)",
+          }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-red-600 dark:text-red-300">
+                Critical Refill Alerts
+              </p>
+
+              <p className="mt-1 text-sm font-medium text-red-700 dark:text-red-100">
+                {criticalMedicationMetrics.length} medication
+                {criticalMedicationMetrics.length > 1 ? "s" : ""} need refill
+                attention.
+              </p>
+
+              <p className="mt-1 text-xs text-red-700/80 dark:text-red-200/80">
+                Refill these medicines soon to avoid missed doses.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={generateRefillList}
+              className="min-h-10 rounded-xl border px-3 text-xs font-semibold text-red-700 dark:text-red-100 transition-all hover:bg-red-500/10"
+              style={{
+                borderColor: "rgba(239,68,68,0.35)",
+                background: "rgba(239,68,68,0.10)",
+              }}
+            >
+              Generate Refill List
+            </button>
           </div>
+
+          <div className="mt-3 space-y-2">
+            {criticalMedicationMetrics.map(({ medication, daysRemaining }) => {
+              const daysLeft = Math.max(0, Math.floor(daysRemaining));
+
+              return (
+                <div
+                  key={medication.id}
+                  className="rounded-xl border p-3"
+                  style={{
+                    borderColor: "rgba(239,68,68,0.35)",
+                    background: "var(--bg-elevated)",
+                  }}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-red-600 dark:text-red-200">
+                        {medication.name}
+                      </p>
+
+                      <p className="mt-0.5 text-xs text-red-600/80 dark:text-red-200/80">
+                        {medication.doseAmount}
+                        {medication.unit} · {medication.route} ·{" "}
+                        {medication.frequency.replaceAll("_", " ")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-bold text-red-600 dark:text-red-200">
+                      {daysLeft === 0 ? "Refill now" : `${daysLeft} days left`}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {generatedRefillList && (
+            <pre
+              className="mt-3 whitespace-pre-wrap rounded-xl border p-3 text-xs font-medium text-red-600 dark:text-red-200"
+              style={{
+                borderColor: "rgba(239,68,68,0.25)",
+                background: "var(--bg-elevated)",
+              }}
+            >
+              {generatedRefillList}
+            </pre>
+          )}
         </div>
       )}
     </div>
   );
-
   const profilePanel = (
     <div className="space-y-3">
       <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-primary)", background: "var(--bg-card)" }}>
