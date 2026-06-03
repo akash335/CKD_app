@@ -2,7 +2,6 @@ name: Keep Backend Alive
 
 on:
   schedule:
-    # Runs every 10 minutes to keep Render backend awake
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
@@ -14,15 +13,15 @@ jobs:
       - name: Ping CKD Guardian backend
         run: |
           STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" \
-            --max-time 30 \
+            --max-time 90 \
             -H "X-API-Key: ckdguardian-secure-key-2026" \
-            https://ckd-guardian-backend.onrender.com/health)
+            https://ckd-guardian-backend.onrender.com/health || echo "000")
 
           echo "Backend health status: $STATUS"
 
           if [ "$STATUS" = "200" ]; then
             echo "✅ Backend is alive"
           else
-            echo "⚠️ Backend returned status $STATUS"
-            exit 1
+            echo "⚠️ Backend did not return 200. It may be waking up or temporarily slow."
+            echo "Not failing workflow to avoid repeated GitHub email spam."
           fi
