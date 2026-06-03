@@ -111,3 +111,10 @@ android/.gradle/
 .codex/
 .antigravityignore
 .github/skills/
+
+# ─── ANDROID SIGNING SECRETS ─────────────────────────────────────────────
+mobileapp/android/app/*.jks
+mobileapp/android/*.jks
+mobileapp/android/gradle.properties
+*.jks
+*.keystore
